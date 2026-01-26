@@ -1,0 +1,192 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import DashboardLayout from '@/layouts/DashboardLayout';
+import { Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import client from '@/api/client';
+
+const SubmitWelfareRequest = () => {
+  const { user } = useAuth();
+  const [formData, setFormData] = useState({
+    studentName: '',
+    grade: '',
+    welfareType: '',
+    description: '',
+    estimatedCost: '',
+    supportingDocument: null,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
+
+  const welfareTypes = ['Books', 'Uniforms', 'Fees', 'Other'];
+
+  const handleFileChange = (e) => {
+    setFormData({ ...formData, supportingDocument: e.target.files[0] });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    // In a real app, we would include user.school in the payload
+    // const payload = { ...formData, school: user.school };
+    // console.log('Submitting for school:', user.school);
+
+    try {
+      await client.post('/welfare', {
+        studentName: formData.studentName,
+        grade: formData.grade,
+        category: formData.welfareType, // Mapping welfareType to category
+        description: formData.description,
+        cost: parseFloat(formData.estimatedCost),
+        priority: 'Medium' // Default or add field
+      });
+
+      setSuccess(true);
+      setTimeout(() => navigate('/teacher/track-requests'), 2000);
+    } catch (err) {
+      setError('Failed to submit welfare request. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="max-w-3xl">
+        <h1 className="text-2xl mb-6">Submit Welfare Request</h1>
+
+        {success && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-green-600" />
+            <div>
+              <p className="text-green-800 font-medium">Request submitted successfully!</p>
+              <p className="text-sm text-green-700">Redirecting to track requests...</p>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-red-600" />
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm mb-2">Student Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.studentName}
+                  onChange={(e) => setFormData({ ...formData, studentName: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter student name"
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-2">Grade/Class *</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.grade}
+                  onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="e.g. 10-A"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm mb-2">Welfare Type *</label>
+              <select
+                required
+                value={formData.welfareType}
+                onChange={(e) => setFormData({ ...formData, welfareType: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select type</option>
+                {welfareTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm mb-2">Description *</label>
+              <textarea
+                required
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows="4"
+                placeholder="Provide detailed description of the welfare need"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm mb-2">Estimated Cost (LKR) *</label>
+              <input
+                type="number"
+                required
+                min="0"
+                value={formData.estimatedCost}
+                onChange={(e) => setFormData({ ...formData, estimatedCost: e.target.value })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0.00"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm mb-2">Supporting Documents</label>
+              <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
+                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <input
+                  type="file"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="file-upload"
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <span className="text-blue-600 hover:underline">Upload a file</span>
+                  <span className="text-gray-500"> or drag and drop</span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1">PDF, DOC, JPG up to 10MB</p>
+                {formData.supportingDocument && (
+                  <p className="text-sm text-green-600 mt-2">{formData.supportingDocument.name}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                {loading ? <LoadingSpinner size="sm" /> : 'Submit Request'}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/teacher/track-requests')}
+                className="px-6 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default SubmitWelfareRequest;

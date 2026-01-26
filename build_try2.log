@@ -1,0 +1,31 @@
+
+> eduzone@0.1.0 build
+> vite build
+
+[36mvite v6.3.5 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 60 modules transformed.
+[31m✗[39m Build failed in 875ms
+[31merror during build:
+[31m[vite:esbuild] Transform failed with 1 error:
+C:/Users/ASUS/Desktop/EduZone/src/app/components/ui/badge.jsx:30:1: ERROR: Expected ")" but found ":"[31m
+file: [36mC:/Users/ASUS/Desktop/EduZone/src/app/components/ui/badge.jsx:30:1[31m
+[33m
+[33mExpected ")" but found ":"[33m
+28 |    asChild = false,
+29 |    ...props
+30 |  }:  &
+   |   ^
+31 |    VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
+32 |    const Comp = asChild ? Slot : "span";
+[31m
+    at failureErrorWithLog (C:\Users\ASUS\Desktop\EduZone\node_modules\esbuild\lib\main.js:1467:15)
+    at C:\Users\ASUS\Desktop\EduZone\node_modules\esbuild\lib\main.js:736:50
+    at responseCallbacks.<computed> (C:\Users\ASUS\Desktop\EduZone\node_modules\esbuild\lib\main.js:603:9)
+    at handleIncomingPacket (C:\Users\ASUS\Desktop\EduZone\node_modules\esbuild\lib\main.js:658:12)
+    at Socket.readFromStdout (C:\Users\ASUS\Desktop\EduZone\node_modules\esbuild\lib\main.js:581:7)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)[39m
