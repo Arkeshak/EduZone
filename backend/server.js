@@ -15,7 +15,9 @@ const app = express();
 app.use(helmet({
     crossOriginResourcePolicy: false, // allow images to be loaded cross origin
 }));
-app.use(cors());
+app.use(cors({
+    origin: "https://eduzone-backend-etd0hfbqapg8dffs.eastasia-01.azurewebsites.net"
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
