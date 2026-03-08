@@ -64,6 +64,10 @@ app.use('/api/circulars', require('./routes/circularRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/transfers', require('./routes/transferRoutes'));
 
+app.get("/", (req, res) => {
+    res.send("EduZone Backend Running on Azure 🚀");
+});
+
 // Database Connection
 sequelize.authenticate()
     .then(() => console.log('Database connected successfully...'))
