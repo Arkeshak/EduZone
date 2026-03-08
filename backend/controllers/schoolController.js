@@ -1,5 +1,4 @@
-const School = require('../models/School');
-const User = require('../models/User');
+const { School, User, Teacher, Principal, Subject } = require('../models');
 
 // @desc    Get all schools
 // @route   GET /api/schools
@@ -20,16 +19,77 @@ const getSchoolUsers = async (req, res) => {
     try {
         const users = await User.findAll({
             where: {
-                role: ['principal', 'teacher']
-            }
+                role: ['PRINCIPAL', 'TEACHER'] // New uppercase roles
+            },
+            include: [
+                {
+                    model: Teacher,
+                    as: 'teacherProfile',
+                    include: [
+                        { model: School, as: 'school' },
+                        { model: Subject, as: 'subjects' }
+                    ]
+                },
+                {
+                    model: Principal,
+                    as: 'principalProfile',
+                    include: [{ model: School, as: 'school' }]
+                }
+            ]
         });
 
-        // Manually Attach School Name (since we store SchoolId/Name differently sometimes)
-        // Ideally we used Associations, but for now let's map it if needed or just return users
-        // The frontend expects user.schoolData or just user.school (string)
-        // Our User model has 'school' (string) and 'schoolId' (integer).
+        const mappedUsers = users.map(u => {
+            const userJson = u.toJSON();
+            const schoolData = userJson.teacherProfile?.school || userJson.principalProfile?.school;
 
-        res.json(users);
+            let subjectsList = [];
+            if (userJson.teacherProfile && userJson.teacherProfile.subjects) {
+                subjectsList = userJson.teacherProfile.subjects.map(s => s.name);
+            }
+            if (userJson.teacherProfile) {
+                userJson.teacherProfile.subjects = subjectsList;
+            }
+
+            return { ...userJson, schoolData };
+        });
+
+        res.json(mappedUsers);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get Principal's School
+const getMySchool = async (req, res) => {
+    try {
+        const principalProfile = await Principal.findOne({ where: { userId: req.user.id } });
+        if (!principalProfile) return res.status(404).json({ message: 'Principal profile not found' });
+
+        const school = await School.findByPk(principalProfile.schoolId);
+        res.json(school);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update Principal's School (Bank Details)
+const updateMySchool = async (req, res) => {
+    try {
+        const principalProfile = await Principal.findOne({ where: { userId: req.user.id } });
+        if (!principalProfile) return res.status(404).json({ message: 'Principal Not Found' });
+
+        const school = await School.findByPk(principalProfile.schoolId);
+        if (!school) return res.status(404).json({ message: 'School Not Found' });
+
+        const { bankName, bankBranch, accountNumber, accountHolder } = req.body;
+
+        if (bankName) school.bankName = bankName;
+        if (bankBranch) school.bankBranch = bankBranch;
+        if (accountNumber) school.accountNumber = accountNumber;
+        if (accountHolder) school.accountHolder = accountHolder;
+
+        await school.save();
+        res.json({ message: 'School details updated', school });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -37,5 +97,7 @@ const getSchoolUsers = async (req, res) => {
 
 module.exports = {
     getSchools,
-    getSchoolUsers
+    getSchoolUsers,
+    getMySchool,
+    updateMySchool
 };

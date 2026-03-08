@@ -1,11 +1,24 @@
+# EduZone
 
-  # EduZone Frontend Development
+EduZone is a comprehensive educational support platform designed to facilitate funding and resource management for schools. It connects donors with specific welfare requests from teachers and students, ensuring transparency and efficiency in educational philanthropy.
 
-  This is a code bundle for EduZone Frontend Development. The original project is available at https://www.figma.com/design/lmFjSlcVFAl4rHgXl1lUZm/EduZone-Frontend-Development.
+## Project Structure
 
-  ## Running the code
+- **Backend**: Node.js, Express, Sequelize (MySQL).
+- **Frontend**: React, Vite, Tailwind CSS, Shadcn/UI.
 
-  Run `npm i` to install the dependencies.
+## Getting Started
 
-  Run `npm run dev` to start the development server.
-  
+### Backend
+1. `cd backend`
+2. `npm install`
+3. Configure `.env` based on `.env.example`.
+4. `npm start`
+
+### Frontend
+1. `cd frontend`
+2. `npm install`
+3. `npm run dev`
+
+## Documentation
+Refer to [PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md) for a detailed architectural overview.

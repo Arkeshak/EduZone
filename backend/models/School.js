@@ -13,17 +13,36 @@ const School = db.define('School', {
         unique: true
     },
     address: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: false
     },
     division: {
         type: DataTypes.STRING,
-        allowNull: false
-    },
-    censusNo: {
-        type: DataTypes.STRING,
         allowNull: true
+    },
+    bankName: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'bank_name'
+    },
+    bankBranch: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'bank_branch'
+    },
+    accountNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'account_number'
+    },
+    accountHolder: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'account_holder'
     }
+}, {
+    tableName: 'schools',
+    underscored: true
 });
 
 module.exports = School;

@@ -1,23 +1,33 @@
-const { Circular, User } = require('../models');
+const { Circular, CircularRecipient, User } = require('../models');
 
 // @desc    Publish Circular (ZEO Only)
 // @route   POST /api/circulars
 // @access  Private (ZEO)
 const publishCircular = async (req, res) => {
     try {
-        const { title, content, targetAudience } = req.body;
+        const { title, message, status, recipients } = req.body; // recipients: ['PRINCIPAL', 'TEACHER']
 
-        // Ensure user is ZEO
-        if (req.user.role !== 'zeo') {
+        if (req.user.role !== 'ZEO') {
             return res.status(403).json({ message: 'Only ZEO can publish circulars.' });
         }
 
         const circular = await Circular.create({
             title,
-            content,
-            targetAudience, // 'all', 'principals', 'teachers'
-            authorId: req.user.id
+            message,
+            status: status || 'PUBLISHED',
+            publishedBy: req.user.id,
+            publishedAt: (status === 'PUBLISHED' || !status) ? new Date() : null
         });
+
+        // Handle Recipients
+        if (recipients && Array.isArray(recipients)) {
+            for (const role of recipients) {
+                await CircularRecipient.create({
+                    circularId: circular.id,
+                    role: role.toUpperCase()
+                });
+            }
+        }
 
         res.status(201).json(circular);
     } catch (error) {
@@ -25,36 +35,33 @@ const publishCircular = async (req, res) => {
     }
 };
 
-// @desc    Get Circulars (For Principal/Teacher)
+// @desc    Get Circulars
 // @route   GET /api/circulars
 // @access  Private
 const getCirculars = async (req, res) => {
     try {
         const { role } = req.user;
-        let whereClause = {};
+        let circulars;
 
-        // Filtering logic
-        // ZEO sees all created by them? Or all.
-        // Principal sees 'all' or 'principals'
-        // Teacher sees 'all' or 'teachers'
+        if (role === 'ZEO') {
+            circulars = await Circular.findAll({
+                order: [['createdAt', 'DESC']]
+            });
+        } else {
+            // Find circulars where recipient role matches
+            const recipientRecords = await CircularRecipient.findAll({
+                where: { role: role }
+            });
+            const circularIds = recipientRecords.map(r => r.circularId);
 
-        if (role === 'zeo') {
-            // See all
-        } else if (role === 'principal') {
-            whereClause = {
-                targetAudience: ['all', 'principals']
-            };
-        } else if (role === 'teacher') {
-            whereClause = {
-                targetAudience: ['all', 'teachers']
-            };
+            circulars = await Circular.findAll({
+                where: {
+                    id: circularIds,
+                    status: 'PUBLISHED'
+                },
+                order: [['publishedAt', 'DESC']]
+            });
         }
-
-        // Just fetching all for simplicity if ZEO, filtered for others
-        const circulars = await Circular.findAll({
-            where: role === 'zeo' ? {} : { targetAudience: ['all', role === 'principal' ? 'principals' : 'teachers'] },
-            order: [['createdAt', 'DESC']]
-        });
 
         res.json(circulars);
     } catch (error) {

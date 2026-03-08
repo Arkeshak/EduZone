@@ -1,6 +1,7 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+﻿import { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getToken, setToken as saveToken, removeToken, getUserRole, getUserInfo, isTokenValid } from '@/utils/tokenHelper';
+import client from '@/services/apiClient';
 
 const AuthContext = createContext(null);
 
@@ -33,10 +34,16 @@ export const AuthProvider = ({ children }) => {
     setRole(userRole);
   };
 
-  const logout = () => {
-    removeToken();
-    setUser(null);
-    setRole(null);
+  const logout = async () => {
+    try {
+      await client.post('/auth/logout');
+    } catch (err) {
+      console.error('Logout API failed', err);
+    } finally {
+      removeToken();
+      setUser(null);
+      setRole(null);
+    }
   };
 
   const value = {

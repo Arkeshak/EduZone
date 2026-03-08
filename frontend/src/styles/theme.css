@@ -3,18 +3,23 @@
 :root {
   --font-size: 16px;
   --background: #ffffff;
-  --foreground: #0f172a; /* Slate 900 */
+  --foreground: #0f172a;
+  /* Slate 900 */
   --card: #ffffff;
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #1e1b4b; /* Indigo 950 - Deep Royal Blue */
+  --primary: #1e1b4b;
+  /* Indigo 950 - Deep Royal Blue */
   --primary-foreground: #ffffff;
-  --secondary: #f1f5f9; /* Slate 100 */
+  --secondary: #f1f5f9;
+  /* Slate 100 */
   --secondary-foreground: #1e1b4b;
   --muted: #f8fafc;
-  --muted-foreground: #64748b; /* Slate 500 */
-  --accent: #ffc107; /* Amber 500 - Gold */
+  --muted-foreground: #64748b;
+  /* Slate 500 */
+  --accent: #ffc107;
+  /* Amber 500 - Gold */
   --accent-foreground: #1e1b4b;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
@@ -100,6 +105,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: "Outfit", sans-serif;
 }
 
 @layer base {

@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { GraduationCap, Mail, Lock, AlertCircle, School, Building, Heart, ArrowLeft } from 'lucide-react';
+import { GraduationCap, Mail, Lock, AlertCircle, School, Building, Heart, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { authApi } from '@/api/authApi';
+import { authApi } from '@/services/authService';
+
+// Background Images
+import eduBg from '../assets/education_hero.png';
+import donationBg from '../assets/donation_hero.png';
+import heroBg from '../assets/hero-bg.png';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -17,43 +23,58 @@ const Login = () => {
   // Configuration for different roles
   const roleConfig = {
     teacher: {
-      title: 'Teacher Login',
+      title: 'Teacher Portal',
       icon: GraduationCap,
-      color: 'text-blue-600',
+      color: 'text-blue-400',
       bgColor: 'bg-blue-600',
-      gradient: 'from-blue-50 to-blue-100',
+      gradient: 'from-blue-900/90 to-slate-900/90',
+      image: eduBg,
+      borderColor: 'border-blue-500/30',
+      glow: 'shadow-[0_0_40px_rgba(59,130,246,0.2)]',
       defaultEmail: 'teacher@edu.lk'
     },
     principal: {
-      title: 'Principal Login',
+      title: 'Principal Access',
       icon: School,
-      color: 'text-purple-600',
+      color: 'text-purple-400',
       bgColor: 'bg-purple-600',
-      gradient: 'from-purple-50 to-purple-100',
+      gradient: 'from-purple-900/90 to-slate-900/90',
+      image: heroBg,
+      borderColor: 'border-purple-500/30',
+      glow: 'shadow-[0_0_40px_rgba(168,85,247,0.2)]',
       defaultEmail: 'principal@edu.lk'
     },
     zeo: {
       title: 'ZEO Administration',
       icon: Building,
-      color: 'text-orange-600',
+      color: 'text-orange-400',
       bgColor: 'bg-orange-600',
-      gradient: 'from-orange-50 to-orange-100',
+      gradient: 'from-orange-900/90 to-slate-900/90',
+      image: eduBg, // Reusing education bg for admin but with different overlay
+      borderColor: 'border-orange-500/30',
+      glow: 'shadow-[0_0_40px_rgba(234,88,12,0.2)]',
       defaultEmail: 'zeo@edu.lk'
     },
     donor: {
-      title: 'Donor Login',
+      title: 'Donor Hub',
       icon: Heart,
-      color: 'text-pink-600',
+      color: 'text-pink-400',
       bgColor: 'bg-pink-600',
-      gradient: 'from-pink-50 to-pink-100',
+      gradient: 'from-pink-900/90 to-slate-900/90',
+      image: donationBg,
+      borderColor: 'border-pink-500/30',
+      glow: 'shadow-[0_0_40px_rgba(236,72,153,0.2)]',
       defaultEmail: 'donor@example.com'
     },
     default: {
       title: 'EduZone Login',
       icon: GraduationCap,
-      color: 'text-gray-700',
-      bgColor: 'bg-gray-800',
-      gradient: 'from-gray-50 to-gray-200',
+      color: 'text-white',
+      bgColor: 'bg-slate-700',
+      gradient: 'from-slate-900/90 to-slate-950/90',
+      image: eduBg,
+      borderColor: 'border-white/10',
+      glow: 'shadow-[0_0_40px_rgba(255,255,255,0.1)]',
       defaultEmail: ''
     }
   };
@@ -61,12 +82,6 @@ const Login = () => {
   const currentConfig = roleConfig[roleParam] || roleConfig.default;
   const IconComponent = currentConfig.icon;
 
-  useEffect(() => {
-    // Pre-fill email if role is selected (for mock convenience)
-    if (currentConfig.defaultEmail) {
-      setFormData(prev => ({ ...prev, email: currentConfig.defaultEmail }));
-    }
-  }, [roleParam]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,104 +96,122 @@ const Login = () => {
 
       // Decode role to navigate
       const payload = JSON.parse(atob(token.split('.')[1]));
-      const userRole = payload.role;
+      const userRole = payload.role?.toLowerCase();
 
       // Basic validation to ensure they logged into the correct portal
       if (roleParam && roleParam !== userRole) {
-        // You might allow this or block it. For now, we'll warn but allow redirect to proper dashboard.
-        // Or strictly: throw new Error(`You cannot login as ${userRole} from ${roleParam} portal.`);
+        // You might allow this or block it.
       }
 
       navigate(`/${userRole}/dashboard`);
 
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Login failed. Please try again.');
+      const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please try again.';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br ${currentConfig.gradient} flex items-center justify-center p-4`}>
-      <div className="max-w-md w-full">
-        <Link to="/" className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-6 transition-colors">
+    <div className="min-h-screen relative flex items-center justify-center p-4 overflow-hidden font-sans">
+      {/* Background Image & Overlay */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src={currentConfig.image}
+          alt="Background"
+          className="w-full h-full object-cover"
+        />
+        <div className={`absolute inset-0 bg-gradient-to-br ${currentConfig.gradient} backdrop-blur-sm`}></div>
+      </div>
+
+      <div className="max-w-md w-full relative z-10 animate-in fade-in zoom-in duration-500">
+        <Link to="/" className="inline-flex items-center text-sm text-slate-300 hover:text-white mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Home
         </Link>
 
-        <div className="text-center mb-8">
-          <div className={`inline-flex items-center justify-center w-20 h-20 ${currentConfig.bgColor} rounded-full mb-4 shadow-lg transform transition-transform hover:scale-105`}>
-            <IconComponent className="w-10 h-10 text-white" />
-          </div>
-          <h1 className={`text-3xl font-bold ${currentConfig.color} mb-2`}>{currentConfig.title}</h1>
-          <p className="text-gray-600">Hatton Zonal Education Office</p>
-        </div>
+        {/* Glass Card */}
+        <div className={`bg-white/10 backdrop-blur-xl rounded-[2rem] border border-white/20 p-6 sm:p-8 md:p-10 shadow-[0_8px_32px_rgba(0,0,0,0.3)] ${currentConfig.borderColor} ${currentConfig.glow} transition-all duration-500`}>
 
-        <div className="bg-white rounded-xl shadow-2xl p-8 border border-white/50">
-          <h2 className="text-xl font-semibold mb-6 text-center text-gray-800">Sign in to your account</h2>
+          <div className="text-center mb-8">
+            <div className={`inline-flex items-center justify-center w-20 h-20 ${currentConfig.bgColor} rounded-2xl mb-6 shadow-lg shadow-black/20 transform hover:scale-110 transition-transform duration-300 rotate-3`}>
+              <IconComponent className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 tracking-tight">{currentConfig.title}</h1>
+            <p className="text-slate-300 text-sm font-medium uppercase tracking-widest opacity-80">Hatton Zonal Education Office</p>
+          </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-red-700 text-sm">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-200 text-sm backdrop-blur-md">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                 <input
                   type="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 focus:ring-blue-500 transition-all"
-                  placeholder="your.email@example.com"
+                  className="w-full pl-12 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
+                  placeholder="enter your email"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300 ml-1">Password</label>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 focus:ring-blue-500 transition-all"
-                  placeholder="••••••••"
+                  className="w-full pl-12 pr-12 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
+                  placeholder="enter your password"
                 />
-              </div>
-              <div className="flex justify-end mt-1">
-                <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
-                  Forgot Password?
-                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
+            <div className="flex justify-end pt-1">
+              <Link to="/forgot-password" className={`text-sm ${currentConfig.color} hover:text-white transition-colors opacity-80 hover:opacity-100`}>
+                Forgot Password?
+              </Link>
+            </div>
+
 
             <button
               type="submit"
               disabled={loading}
-              className={`w-full ${currentConfig.bgColor} text-white py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center font-medium shadow-md transition-all`}
+              className={`w-full ${currentConfig.bgColor} hover:brightness-110 text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all transform hover:-translate-y-0.5 mt-2`}
             >
-              {loading ? <LoadingSpinner size="sm" /> : 'Login'}
+              {loading ? <LoadingSpinner size="sm" /> : 'Sign In'}
             </button>
           </form>
 
-          <div className="mt-8 text-center space-y-3">
+          <div className="mt-8 pt-6 border-t border-white/10 text-center space-y-4">
             {roleParam === 'donor' && (
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-slate-300">
                 New donor?{' '}
-                <Link to="/donor/register" className="text-pink-600 hover:underline font-medium">
-                  Register here
+                <Link to="/donor/register" className={`${currentConfig.color} font-bold hover:text-white transition-colors`}>
+                  Register Account
                 </Link>
               </p>
             )}
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-slate-500">
               Protected by Zonal Govt. Security Policy
             </p>
           </div>

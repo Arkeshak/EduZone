@@ -11,20 +11,27 @@ const Circular = db.define('Circular', {
         type: DataTypes.STRING,
         allowNull: false
     },
-    content: {
+    message: {
         type: DataTypes.TEXT,
         allowNull: false
     },
-    // recipients: 'principals', 'teachers', 'all'
-    targetAudience: {
-        type: DataTypes.STRING,
-        defaultValue: 'all'
-    },
     status: {
-        type: DataTypes.ENUM('Published', 'Draft'),
-        defaultValue: 'Published'
+        type: DataTypes.ENUM('DRAFT', 'PUBLISHED'),
+        defaultValue: 'DRAFT'
+    },
+    publishedBy: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        field: 'published_by'
+    },
+    publishedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        field: 'published_at'
     }
-    // We will associate with 'User' (ZEO) as 'author'
+}, {
+    tableName: 'circulars',
+    underscored: true
 });
 
 module.exports = Circular;

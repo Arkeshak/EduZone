@@ -1,17 +1,18 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/app/components/ui/radio-group';
-import { Checkbox } from '@/app/components/ui/checkbox';
-import { CreditCard, Wallet, Heart, CheckCircle2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import { CreditCard, Wallet, Heart, CheckCircle2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import client from '@/api/client';
+import FileUploader from '@/components/FileUploader';
+import client from '@/services/apiClient';
 
 const MakeDonation = () => {
   const [searchParams] = useSearchParams();
@@ -26,6 +27,8 @@ const MakeDonation = () => {
   const [amount, setAmount] = useState(paramAmount ? 'custom' : '');
   const [customAmount, setCustomAmount] = useState(paramAmount || '');
   const [allocation, setAllocation] = useState(requestId ? 'specific' : 'general');
+  const [paymentMethod, setPaymentMethod] = useState('Online');
+  const [receiptFile, setReceiptFile] = useState(null);
 
   const PRESET_AMOUNTS = [1000, 2500, 5000, 10000];
 
@@ -37,22 +40,40 @@ const MakeDonation = () => {
       return;
     }
 
+    if (paymentMethod === 'Bank Transfer' && !receiptFile) {
+      toast.error("Please upload the bank transfer receipt.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const finalAmount = amount === 'custom' ? customAmount : amount;
       const numericAmount = parseFloat(finalAmount.toString().replace(/,/g, ''));
+      const isAnonymous = document.getElementById('anonymous')?.checked || false;
 
-      await client.post('/donations', {
-        amount: numericAmount,
-        description: paramDesc || 'General Donation',
-        allocation: allocation,
-        isAnonymous: document.getElementById('anonymous')?.checked || false
+      // Use FormData if sending file
+      const formData = new FormData();
+      formData.append('amount', numericAmount);
+      formData.append('description', paramDesc || 'General Donation');
+      formData.append('allocation', allocation);
+      formData.append('isAnonymous', isAnonymous);
+      formData.append('paymentMethod', paymentMethod);
+      if (requestId) {
+        formData.append('welfareRequestId', requestId);
+      }
+
+      if (receiptFile) {
+        formData.append('receipt', receiptFile);
+      }
+
+      await client.post('/donations', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       setSuccess(true);
       toast.success("Thank you! Your donation has been processed.");
     } catch (error) {
+      console.error(error);
       toast.error("Donation failed. Please try again.");
     } finally {
       setLoading(false);
@@ -69,12 +90,34 @@ const MakeDonation = () => {
           <div>
             <h2 className="text-3xl font-bold text-gray-900">Thank You!</h2>
             <p className="text-xl text-gray-600 mt-2">Your contribution of LKR {amount === 'custom' ? customAmount : amount} has been received.</p>
-            <p className="text-gray-500 mt-1">A receipt has been sent to your email.</p>
+            {paymentMethod === 'Bank Transfer' ? (
+              <p className="text-gray-500 mt-1">Your receipt has been uploaded for verification.</p>
+            ) : (
+              <p className="text-gray-500 mt-1">A receipt has been sent to your email.</p>
+            )}
           </div>
           <div className="flex gap-4 mt-8">
-            <Button variant="outline" onClick={() => { setSuccess(false); setStep(1); setAmount(''); }}>Make Another Donation</Button>
+            <Button variant="outline" onClick={() => window.location.href = '/donor/browse-requests'}>Browse More Requests</Button>
             <Button className="bg-blue-600 hover:bg-blue-700">Download Receipt</Button>
           </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  /* Guard: Only allow donations with Request ID */
+  if (!requestId) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
+          <div className="p-6 bg-red-50 rounded-full">
+            <Heart className="w-12 h-12 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">Select a Cause</h2>
+          <p className="text-gray-600 max-w-md">Please browse the verified welfare requests and select a specific student/cause to support.</p>
+          <Button onClick={() => window.location.href = '/donor/browse-requests'} className="bg-blue-600">
+            Browse Requests
+          </Button>
         </div>
       </DashboardLayout>
     );
@@ -84,8 +127,8 @@ const MakeDonation = () => {
     <DashboardLayout>
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Make a Donation</h1>
-          <p className="text-gray-600">Your contribution helps shape the future of students in Hatton Zone.</p>
+          <h1 className="text-2xl font-bold">Complete Your Donation</h1>
+          <p className="text-gray-600">You are supporting a verified student request.</p>
         </div>
 
         {requestId && (
@@ -96,8 +139,9 @@ const MakeDonation = () => {
               </div>
               <div className="ml-3">
                 <p className="text-sm text-blue-700">
-                  You are funding a specific request: <span className="font-semibold">{paramDesc}</span> for <span className="font-semibold">{paramSchool}</span>.
+                  Ref ID: <span className="font-semibold">{searchParams.get('ref') || `#${requestId}`}</span>
                 </p>
+                {paramSchool && <p className="text-xs text-blue-600 mt-1">School: {paramSchool}</p>}
               </div>
             </div>
           </div>
@@ -105,73 +149,39 @@ const MakeDonation = () => {
 
         <Card className="border-t-4 border-t-blue-600 shadow-md">
           <CardHeader>
-            <CardTitle>Select Donation Amount (LKR)</CardTitle>
-            <CardDescription>Choose an amount or enter your own</CardDescription>
+            <CardTitle>Donation Amount (LKR)</CardTitle>
+            <CardDescription>Confirm the amount to fund this request</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
 
             {/* Amount Selection */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {PRESET_AMOUNTS.map((val) => (
-                <button
-                  key={val}
-                  onClick={() => { setAmount(val); setCustomAmount(''); }}
-                  className={`p-4 border rounded-lg flex flex-col items-center justify-center transition-all ${amount === val ? 'bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-200' : 'hover:bg-gray-50 border-gray-200'}`}
-                >
-                  <span className="text-lg font-bold">{val.toLocaleString()}</span>
-                </button>
-              ))}
-            </div>
-
             <div className="pt-4">
+              {/* Logic to lock amount to request cost if needed, but user might partial fund. Allowing edit is fine. */}
               <div className="flex items-center space-x-2">
-                <RadioGroup value={amount === 'custom' ? 'custom' : 'preset'} onValueChange={() => setAmount('custom')}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="custom" id="custom" />
-                    <Label htmlFor="custom" className="font-medium cursor-pointer">Enter Custom Amount</Label>
-                  </div>
-                </RadioGroup>
+                <Label className="font-semibold text-lg">Amount to Donate:</Label>
               </div>
-              {amount === 'custom' && (
-                <div className="mt-3 ml-6 max-w-sm relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">LKR</span>
-                  <Input
-                    type="number"
-                    placeholder="Enter amount"
-                    className="pl-12"
-                    value={customAmount}
-                    onChange={(e) => setCustomAmount(e.target.value)}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Donation Type & Allocation */}
-            <div className="space-y-4 pt-6 border-t">
-              <Label className="text-base font-semibold">Allocation Preference</Label>
-              <Select defaultValue="general">
-                <SelectTrigger>
-                  <SelectValue placeholder="Select where to allocate funds" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="general">Revolving Fund (General Pool)</SelectItem>
-                  <SelectItem value="books">Books & Stationery</SelectItem>
-                  <SelectItem value="uniforms">Uniforms & Shoes</SelectItem>
-                  <SelectItem value="infrastructure">School Infrastructure</SelectItem>
-                  <SelectItem value="specific">Specific Request (Browse Requests)</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-500">
-                * General Pool funds are allocated by the ZEO based on urgent needs.
-              </p>
+              <div className="mt-3 max-w-sm relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">LKR</span>
+                <Input
+                  type="number"
+                  placeholder="Enter amount"
+                  className="pl-12 text-lg font-bold"
+                  value={amount === 'custom' ? customAmount : amount}
+                  onChange={(e) => {
+                    setAmount('custom');
+                    setCustomAmount(e.target.value);
+                  }}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-2">Target Amount: LKR {Number(paramAmount).toLocaleString()}</p>
             </div>
 
             {/* Payment Method */}
             <div className="space-y-4 pt-6 border-t">
               <Label className="text-base font-semibold">Payment Method</Label>
-              <RadioGroup defaultValue="card" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2 border p-4 rounded-lg has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 cursor-pointer">
-                  <RadioGroupItem value="card" id="card" />
+              <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className={`flex items-center space-x-2 border p-4 rounded-lg cursor-pointer ${paymentMethod === 'Online' ? 'border-blue-500 bg-blue-50' : ''}`}>
+                  <RadioGroupItem value="Online" id="card" />
                   <Label htmlFor="card" className="flex items-center cursor-pointer w-full">
                     <CreditCard className="w-5 h-5 mr-3 text-gray-500" />
                     <div>
@@ -180,8 +190,8 @@ const MakeDonation = () => {
                     </div>
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2 border p-4 rounded-lg has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 cursor-pointer">
-                  <RadioGroupItem value="bank" id="bank" />
+                <div className={`flex items-center space-x-2 border p-4 rounded-lg cursor-pointer ${paymentMethod === 'Bank Transfer' ? 'border-blue-500 bg-blue-50' : ''}`}>
+                  <RadioGroupItem value="Bank Transfer" id="bank" />
                   <Label htmlFor="bank" className="flex items-center cursor-pointer w-full">
                     <Wallet className="w-5 h-5 mr-3 text-gray-500" />
                     <div>
@@ -191,6 +201,28 @@ const MakeDonation = () => {
                   </Label>
                 </div>
               </RadioGroup>
+
+              {/* Bank Transfer Details & Upload */}
+              {paymentMethod === 'Bank Transfer' && (
+                <div className="bg-slate-50 p-4 rounded-md border border-slate-200 mt-2 animate-in fade-in slide-in-from-top-2">
+                  <h4 className="font-semibold text-sm mb-2 text-slate-700">Bank Account Details</h4>
+                  <div className="text-sm text-slate-600 space-y-1 mb-4">
+                    <p>Bank: <span className="font-medium">Bank of Ceylon</span></p>
+                    <p>Account Name: <span className="font-medium">Hatton Zonal Education Office</span></p>
+                    <p>Account Number: <span className="font-medium">1234-5678-9012</span></p>
+                    <p>Branch: <span className="font-medium">Hatton</span></p>
+                  </div>
+
+                  <FileUploader
+                    id="receipt"
+                    label="Upload Receipt (Image/PDF)"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => setReceiptFile(e.target.files[0])}
+                    file={receiptFile}
+                    helperText="Please upload the confirmation slip or screenshot."
+                  />
+                </div>
+              )}
             </div>
 
             {/* Privacy */}
@@ -221,7 +253,7 @@ const MakeDonation = () => {
                 </>
               ) : (
                 <>
-                  <Heart className="w-5 h-5 mr-2" /> Donate Now
+                  <Heart className="w-5 h-5 mr-2" /> {paymentMethod === 'Bank Transfer' ? 'Submit Donation' : 'Donate Now'}
                 </>
               )}
             </Button>

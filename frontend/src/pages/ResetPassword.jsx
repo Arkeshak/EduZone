@@ -1,15 +1,20 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Lock, ArrowLeft, CheckCircle } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/app/components/ui/card';
+﻿import { useState } from 'react';
+import { validatePassword } from '@/utils/passwordValidation';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Lock, ArrowLeft, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { authApi } from '@/services/authService';
 
 const ResetPassword = () => {
     const [formData, setFormData] = useState({ password: '', confirmPassword: '' });
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const { token } = useParams();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -18,19 +23,25 @@ const ResetPassword = () => {
             toast.error('Passwords do not match');
             return;
         }
-        if (formData.password.length < 6) {
-            toast.error('Password must be at least 6 characters');
+
+        const passwordError = validatePassword(formData.password);
+        if (passwordError) {
+            toast.error(passwordError);
             return;
         }
 
         setLoading(true);
 
-        // Mock API call
-        setTimeout(() => {
+        try {
+            await authApi.resetPassword(token, formData.password);
+
             setLoading(false);
             setSuccess(true);
             toast.success('Password reset successfully');
-        }, 1500);
+        } catch (err) {
+            setLoading(false);
+            toast.error(err.response?.data?.message || 'Failed to reset password');
+        }
     };
 
     if (success) {
@@ -75,13 +86,20 @@ const ResetPassword = () => {
                                 <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
                                 <Input
                                     id="password"
-                                    type="password"
-                                    placeholder="••••••••"
-                                    className="pl-9"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="enter your password...."
+                                    className="pl-9 pr-10"
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                >
+                                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
                             </div>
                         </div>
                         <div className="space-y-2">
@@ -92,13 +110,20 @@ const ResetPassword = () => {
                                 <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
                                 <Input
                                     id="confirmPassword"
-                                    type="password"
-                                    placeholder="••••••••"
-                                    className="pl-9"
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    placeholder="enter your confirm password...."
+                                    className="pl-9 pr-10"
                                     value={formData.confirmPassword}
                                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                >
+                                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
                             </div>
                         </div>
                         <Button className="w-full" type="submit" disabled={loading}>

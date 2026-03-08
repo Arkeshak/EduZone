@@ -7,9 +7,10 @@ const User = db.define('User', {
         primaryKey: true,
         autoIncrement: true
     },
-    name: {
+    fullName: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        field: 'full_name'
     },
     email: {
         type: DataTypes.STRING,
@@ -19,39 +20,43 @@ const User = db.define('User', {
             isEmail: true
         }
     },
-    password: {
+    passwordHash: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        field: 'password_hash'
     },
     role: {
-        type: DataTypes.ENUM('zeo', 'principal', 'teacher', 'donor'),
-        allowNull: false,
-        defaultValue: 'donor'
+        type: DataTypes.ENUM('ZEO', 'PRINCIPAL', 'TEACHER', 'DONOR'),
+        allowNull: false
     },
-    // Authentication & Verification
     isVerified: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false
+        defaultValue: false,
+        field: 'is_verified'
     },
-    verificationToken: {
+    isActive: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        field: 'is_active'
+    },
+    activationToken: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
+        field: 'activation_token'
     },
-    verificationTokenExpire: {
+    activationExpires: {
         type: DataTypes.DATE,
-        allowNull: true
+        allowNull: true,
+        field: 'activation_expires'
+    },
+    refreshToken: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'refresh_token'
     }
+}, {
+    tableName: 'users',
+    underscored: true
 });
-
-// Associations
-// Note: We need to require the other models here or in a init file to set up associations
-// To avoid circular dependency issues, we can do it in a separate 'associations.js' or handle carefully.
-// For simplicity in this project, we'll try to do it here but we must require them.
-
-// To prevent circular dependency crash during module load:
-// We will export a function or handle associations in server.js/db.js or just use Strings if models are registered.
-// Sequelize allows associating by model name string usually if loaded.
-// BUT simplest currently: Let's assume we do associations in a `models/index.js` or `server.js` 
-// or I will attach them here using late requires.
 
 module.exports = User;

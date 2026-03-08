@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import StatusBadge from '@/components/StatusBadge';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Eye } from 'lucide-react';
-import client from '@/api/client';
+import client from '@/services/apiClient';
 
 const TrackWelfareRequests = () => {
   const [requests, setRequests] = useState([]);
@@ -48,7 +48,7 @@ const TrackWelfareRequests = () => {
                 <tbody className="divide-y divide-gray-200">
                   {requests.map(request => (
                     <tr key={request.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{request.studentName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{request.student?.name || 'Unknown'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{request.category || request.type}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">LKR {request.cost}</td>
                       <td className="px-6 py-4 whitespace-nowrap"><StatusBadge status={request.status} /></td>

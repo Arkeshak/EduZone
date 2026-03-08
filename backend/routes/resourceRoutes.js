@@ -1,14 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const { uploadResource, getPendingResources, updateResourceStatus, getPublicResources } = require('../controllers/resourceController');
+const {
+    uploadResource,
+    getPublicResources,
+    getMyResources,
+    updateResource,
+    deleteResource
+} = require('../controllers/resourceController');
 const { protect } = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 
 // Public Route
 router.get('/public', getPublicResources);
 
 // Protected Routes
-router.post('/', protect, uploadResource); // Teacher upload
-router.get('/pending', protect, getPendingResources); // ZEO view pending
-router.put('/:id/status', protect, updateResourceStatus); // ZEO approve/reject
+router.post('/', protect, upload.single('file'), uploadResource);
+router.get('/my-resources', protect, getMyResources);
+router.put('/:id', protect, upload.single('file'), updateResource);
+router.delete('/:id', protect, deleteResource);
 
 module.exports = router;

@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
+import { SUBJECTS } from '@/utils/subjects';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { Card, CardContent } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash, UserPlus, Users, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import client from '@/api/client';
+import client from '@/services/apiClient';
 
 const UserManagement = () => {
   const [activeTab, setActiveTab] = useState('teachers');
@@ -41,8 +42,8 @@ const UserManagement = () => {
       const usersRes = await client.get('/schools/users'); // I will create this endpoint
       const schoolsRes = await client.get('/schools');
 
-      setPrincipals(usersRes.data.filter(u => u.role === 'principal'));
-      setTeachers(usersRes.data.filter(u => u.role === 'teacher'));
+      setPrincipals(usersRes.data.filter(u => u.role === 'PRINCIPAL'));
+      setTeachers(usersRes.data.filter(u => u.role === 'TEACHER'));
       setSchools(schoolsRes.data);
 
     } catch (error) {
@@ -143,11 +144,16 @@ const UserManagement = () => {
               {newUser.role === 'teacher' && (
                 <div className="space-y-2 md:col-span-2">
                   <Label>Subject</Label>
-                  <Input
-                    placeholder="e.g. Mathematics"
-                    value={newUser.subjects}
-                    onChange={e => setNewUser({ ...newUser, subjects: e.target.value })}
-                  />
+                  <Select value={newUser.subjects} onValueChange={val => setNewUser({ ...newUser, subjects: val })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUBJECTS.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
               <Button type="submit" className="md:col-span-2 mt-2 bg-blue-600 hover:bg-blue-700">
@@ -183,10 +189,10 @@ const UserManagement = () => {
                   <div key={user.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                        {user.name.charAt(0)}
+                        {(user.fullName || user.name || 'U').charAt(0)}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-900">{user.name}</p>
+                        <p className="font-semibold text-gray-900">{user.fullName || user.name}</p>
                         <p className="text-sm text-gray-500">{user.email}</p>
                         <p className="text-xs text-gray-400">{user.schoolData?.name || 'Unknown School'}</p>
                       </div>

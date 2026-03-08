@@ -1,29 +1,55 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
+import { SUBJECTS, GRADES } from '@/utils/subjects';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
-import { Input } from '@/app/components/ui/input';
-import { Label } from '@/app/components/ui/label';
-import { Button } from '@/app/components/ui/button';
-import { Textarea } from '@/app/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import client from '@/services/apiClient';
+import { useNavigate } from 'react-router-dom';
+import FileUploader from '@/components/FileUploader';
 
 const UploadResource = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    grade: '',
+    subject: ''
+  });
+  const [file, setFile] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    if (!file) return toast.error("Please select a file to upload");
 
-    // Simulate API upload
-    setTimeout(() => {
-      setLoading(false);
+    setLoading(true);
+    try {
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('description', formData.description);
+      data.append('grade', formData.grade);
+      data.append('subject', formData.subject);
+      data.append('file', file);
+
+      await client.post('/resources', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
       setSuccess(true);
       toast.success('Resource uploaded successfully!');
-      // Reset form usually
-    }, 1500);
+    } catch (error) {
+      console.error("Upload failed", error);
+      toast.error(error.response?.data?.message || "Failed to upload resource");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (success) {
@@ -35,7 +61,7 @@ const UploadResource = () => {
           </div>
           <h2 className="text-2xl font-bold">Upload Successful!</h2>
           <p className="text-gray-600 text-center max-w-md">
-            Your study resource has been submitted. It will be visible to students after ZEO approval.
+            Your study resource has been submitted and is now visible to students.
           </p>
           <Button onClick={() => setSuccess(false)} className="mt-4">
             Upload Another Resource
@@ -62,18 +88,28 @@ const UploadResource = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="title">Resource Title</Label>
-                <Input id="title" placeholder="e.g. Grade 10 Mathematics Past Papers" required />
+                <Input
+                  id="title"
+                  placeholder="e.g. Grade 10 Mathematics Past Papers"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="grade">Grade</Label>
-                  <Select required>
+                  <Select
+                    required
+                    value={formData.grade}
+                    onValueChange={(val) => setFormData({ ...formData, grade: val })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Grade" />
                     </SelectTrigger>
                     <SelectContent>
-                      {[6, 7, 8, 9, 10, 11, 12, 13].map((g) => (
+                      {GRADES.map((g) => (
                         <SelectItem key={g} value={g.toString()}>Grade {g}</SelectItem>
                       ))}
                     </SelectContent>
@@ -82,16 +118,18 @@ const UploadResource = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="subject">Subject</Label>
-                  <Select required>
+                  <Select
+                    required
+                    value={formData.subject}
+                    onValueChange={(val) => setFormData({ ...formData, subject: val })}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select Subject" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="maths">Mathematics</SelectItem>
-                      <SelectItem value="science">Science</SelectItem>
-                      <SelectItem value="english">English</SelectItem>
-                      <SelectItem value="history">History</SelectItem>
-                      <SelectItem value="it">ICT</SelectItem>
+                      {SUBJECTS.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -104,19 +142,20 @@ const UploadResource = () => {
                   placeholder="Brief description of the content..."
                   className="min-h-[100px]"
                   required
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>File Upload</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer bg-gray-50">
-                  <div className="flex flex-col items-center justify-center space-y-2">
-                    <Upload className="w-10 h-10 text-gray-400" />
-                    <p className="text-sm text-gray-600 font-medium">Click to browse or drag file here</p>
-                    <p className="text-xs text-gray-500">PDF, DOCX, images up to 10MB</p>
-                    <Input type="file" className="opacity-0 absolute inset-0 w-full h-full cursor-pointer hidden" />
-                  </div>
-                </div>
+              <div className="space-y-2 mt-4">
+                <FileUploader
+                  id="resource-file"
+                  label={`File Upload ${file ? `(${file.name})` : ''}`}
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  onChange={(e) => setFile(e.target.files[0])}
+                  file={file}
+                  helperText={file ? "Change file" : "PDF, JPG, PNG up to 5MB"}
+                />
               </div>
 
               <Button type="submit" className="w-full" disabled={loading}>

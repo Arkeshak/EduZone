@@ -7,35 +7,44 @@ const MonthlyReport = db.define('MonthlyReport', {
         primaryKey: true,
         autoIncrement: true
     },
-    month: {
-        type: DataTypes.STRING, // YYYY-MM
-        allowNull: false
+    schoolId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        field: 'school_id'
     },
-    averageAttendance: {
-        type: DataTypes.FLOAT,
-        allowNull: false
+    reportMonth: {
+        type: DataTypes.DATEONLY, // report_month DATE
+        allowNull: false,
+        field: 'report_month'
+    },
+    avgAttendance: {
+        type: DataTypes.DECIMAL(5, 2),
+        allowNull: true,
+        field: 'avg_attendance'
     },
     staffAttendance: {
-        type: DataTypes.FLOAT,
-        allowNull: false
+        type: DataTypes.DECIMAL(5, 2),
+        allowNull: true,
+        field: 'staff_attendance'
     },
     dropoutCount: {
         type: DataTypes.INTEGER,
-        defaultValue: 0
+        defaultValue: 0,
+        field: 'dropout_count'
     },
     remarks: {
         type: DataTypes.TEXT,
         allowNull: true
-    },
-    authorId: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-    },
-    schoolName: {
-        type: DataTypes.STRING,
-        allowNull: true
     }
-    // Associated with Principal (Reporter) and School (Subject)
+}, {
+    tableName: 'monthly_reports',
+    underscored: true,
+    indexes: [
+        {
+            unique: true,
+            fields: ['school_id', 'report_month']
+        }
+    ]
 });
 
 module.exports = MonthlyReport;

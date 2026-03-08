@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Bell, Calendar } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import client from '@/api/client';
+import client from '@/services/apiClient';
 
 const PrincipalCirculars = () => {
   const [circulars, setCirculars] = useState([]);

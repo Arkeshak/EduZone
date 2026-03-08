@@ -7,11 +7,26 @@ const Principal = db.define('Principal', {
         primaryKey: true,
         autoIncrement: true
     },
-    // Linked to User and School
-    appointmentDate: {
-        type: DataTypes.DATEONLY,
-        allowNull: true
+    userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        unique: true,
+        field: 'user_id'
+    },
+    schoolId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        unique: true,
+        field: 'school_id'
+    },
+    contactNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'contact_number'
     }
+}, {
+    tableName: 'principals',
+    underscored: true
 });
 
 module.exports = Principal;

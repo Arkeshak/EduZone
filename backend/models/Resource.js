@@ -1,12 +1,26 @@
 const { DataTypes } = require('sequelize');
-const sequelize = require('../config/db');
+const db = require('../config/db');
 
-
-const Resource = sequelize.define('Resource', {
+const Resource = db.define('Resource', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
+    },
+    teacherId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        field: 'teacher_id'
+    },
+    subjectId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        field: 'subject_id'
+    },
+    schoolId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        field: 'school_id'
     },
     title: {
         type: DataTypes.STRING,
@@ -18,34 +32,20 @@ const Resource = sequelize.define('Resource', {
     },
     grade: {
         type: DataTypes.STRING,
-        allowNull: false
-    },
-    subject: {
-        type: DataTypes.STRING,
-        allowNull: false
+        allowNull: true
     },
     fileUrl: {
         type: DataTypes.STRING,
-        allowNull: false
-    },
-    teacherId: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-        // References handled by association
-    },
-    schoolId: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-        // References handled by association
+        allowNull: false,
+        field: 'file_url'
     },
     status: {
-
-        type: DataTypes.ENUM('Pending', 'Approved', 'Rejected'),
-        defaultValue: 'Pending'
+        type: DataTypes.ENUM('PUBLISHED', 'REMOVED'),
+        defaultValue: 'PUBLISHED'
     }
-    // Associations handled in index.js: teacherId, schoolId added automatically
 }, {
-    timestamps: true
+    tableName: 'resources',
+    underscored: true
 });
 
 module.exports = Resource;

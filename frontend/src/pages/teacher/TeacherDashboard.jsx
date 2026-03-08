@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { FileText, CheckCircle, Clock, XCircle, TrendingUp } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import client from '@/api/client';
+import client from '@/services/apiClient';
 import { useAuth } from '@/context/AuthContext';
 
 const TeacherDashboard = () => {

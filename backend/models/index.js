@@ -2,79 +2,136 @@ const sequelize = require('../config/db');
 
 // Import Models
 const User = require('./User');
+const PasswordReset = require('./PasswordReset');
 const School = require('./School');
-const Teacher = require('./Teacher');
 const Principal = require('./Principal');
-const Donor = require('./Donor');
+const Teacher = require('./Teacher');
+const Subject = require('./Subject');
+const TeacherSubject = require('./TeacherSubject');
+const Student = require('./Student');
 const WelfareRequest = require('./WelfareRequest');
+const WelfareRequestDocument = require('./WelfareRequestDocument');
+const WelfareApproval = require('./WelfareApproval');
+const Donor = require('./Donor');
+const Donation = require('./Donation');
+const Transfer = require('./Transfer');
+const Resource = require('./Resource');
+const Circular = require('./Circular');
+const CircularRecipient = require('./CircularRecipient');
+const CircularAttachment = require('./CircularAttachment');
+const MonthlyReport = require('./MonthlyReport');
+const Notification = require('./Notification');
 
 // --- Associations ---
 
-// 1. User & Profiles
-User.hasOne(Teacher, { foreignKey: 'userId', as: 'teacherProfile', onDelete: 'CASCADE' });
-Teacher.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+// 1. Password Resets
+User.hasMany(PasswordReset, { foreignKey: 'userId', as: 'passwordResets' });
+PasswordReset.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-User.hasOne(Principal, { foreignKey: 'userId', as: 'principalProfile', onDelete: 'CASCADE' });
+// 2. Principal
+User.hasOne(Principal, { foreignKey: 'userId', as: 'principalProfile' });
 Principal.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+School.hasOne(Principal, { foreignKey: 'schoolId', as: 'principal' });
+Principal.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
 
-User.hasOne(Donor, { foreignKey: 'userId', as: 'donorProfile', onDelete: 'CASCADE' });
+// 3. Teacher
+User.hasOne(Teacher, { foreignKey: 'userId', as: 'teacherProfile' });
+Teacher.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+School.hasMany(Teacher, { foreignKey: 'schoolId', as: 'teachers' });
+Teacher.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+
+// 4. Subjects
+Teacher.belongsToMany(Subject, { through: TeacherSubject, foreignKey: 'teacherId', as: 'subjects' });
+Subject.belongsToMany(Teacher, { through: TeacherSubject, foreignKey: 'subjectId', as: 'teachers' });
+
+// 5. Student
+School.hasMany(Student, { foreignKey: 'schoolId', as: 'students' });
+Student.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+
+// 6. Welfare Request
+Student.hasMany(WelfareRequest, { foreignKey: 'studentId', as: 'requests' });
+WelfareRequest.belongsTo(Student, { foreignKey: 'studentId', as: 'student' });
+Teacher.hasMany(WelfareRequest, { foreignKey: 'teacherId', as: 'submittedRequests' });
+WelfareRequest.belongsTo(Teacher, { foreignKey: 'teacherId', as: 'teacher' });
+School.hasMany(WelfareRequest, { foreignKey: 'schoolId', as: 'welfareRequests' });
+WelfareRequest.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+
+// 7. Welfare Request Documents
+WelfareRequest.hasMany(WelfareRequestDocument, { foreignKey: 'welfareRequestId', as: 'documents' });
+WelfareRequestDocument.belongsTo(WelfareRequest, { foreignKey: 'welfareRequestId', as: 'request' });
+
+// 8. Welfare Approvals (Audit Trail)
+WelfareRequest.hasMany(WelfareApproval, { foreignKey: 'welfareRequestId', as: 'approvals' });
+WelfareApproval.belongsTo(WelfareRequest, { foreignKey: 'welfareRequestId', as: 'request' });
+User.hasMany(WelfareApproval, { foreignKey: 'approvedBy', as: 'givenApprovals' });
+WelfareApproval.belongsTo(User, { foreignKey: 'approvedBy', as: 'approver' });
+
+// 9. Donor
+User.hasOne(Donor, { foreignKey: 'userId', as: 'donorProfile' });
 Donor.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-// 2. Donations (Linked to Donor Profile)
-// Ideally Donation belongs to a Donor Profile, not just a User.
-Donor.hasMany(require('./Donation'), { foreignKey: 'donorId', as: 'donations' });
-require('./Donation').belongsTo(Donor, { foreignKey: 'donorId', as: 'donor' });
+// 10. Donation
+Donor.hasMany(Donation, { foreignKey: 'donorId', as: 'donations' });
+Donation.belongsTo(Donor, { foreignKey: 'donorId', as: 'donor' });
+WelfareRequest.hasMany(Donation, { foreignKey: 'welfareRequestId', as: 'donations' });
+Donation.belongsTo(WelfareRequest, { foreignKey: 'welfareRequestId', as: 'request' });
+School.hasMany(Donation, { foreignKey: 'schoolId', as: 'directDonations' });
+Donation.belongsTo(School, { foreignKey: 'schoolId', as: 'allocatedSchool' });
 
-// 2. Staff & School
-School.hasMany(Teacher, { foreignKey: 'schoolId', as: 'teachers' });
-Teacher.belongsTo(School, { foreignKey: 'schoolId', as: 'schoolData' });
+// 11. Transfers
+WelfareRequest.hasMany(Transfer, { foreignKey: 'welfareRequestId', as: 'transfers' });
+Transfer.belongsTo(WelfareRequest, { foreignKey: 'welfareRequestId', as: 'request' });
+Donation.hasOne(Transfer, { foreignKey: 'donationId', as: 'transfer' });
+Transfer.belongsTo(Donation, { foreignKey: 'donationId', as: 'donation' });
+School.hasMany(Transfer, { foreignKey: 'schoolId', as: 'receivedTransfers' });
+Transfer.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+User.hasMany(Transfer, { foreignKey: 'transferredBy', as: 'processedTransfers' });
+Transfer.belongsTo(User, { foreignKey: 'transferredBy', as: 'transferredByUser' });
 
-School.hasOne(Principal, { foreignKey: 'schoolId', as: 'principal' });
-Principal.belongsTo(School, { foreignKey: 'schoolId', as: 'schoolData' });
+// 12. Resources
+Teacher.hasMany(Resource, { foreignKey: 'teacherId', as: 'resources' });
+Resource.belongsTo(Teacher, { foreignKey: 'teacherId', as: 'teacher' });
+Subject.hasMany(Resource, { foreignKey: 'subjectId', as: 'resources' });
+Resource.belongsTo(Subject, { foreignKey: 'subjectId', as: 'subject' });
+School.hasMany(Resource, { foreignKey: 'schoolId', as: 'resources' });
+Resource.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
 
-// 3. Circulars (ZEO creates)
-// User (ZEO) -> Circulars
-User.hasMany(require('./Circular'), { foreignKey: 'authorId', as: 'authoredCirculars' });
-require('./Circular').belongsTo(User, { foreignKey: 'authorId', as: 'author' });
+// 13. Circulars
+User.hasMany(Circular, { foreignKey: 'publishedBy', as: 'publishedCirculars' });
+Circular.belongsTo(User, { foreignKey: 'publishedBy', as: 'publisher' });
+Circular.hasMany(CircularRecipient, { foreignKey: 'circularId', as: 'recipients' });
+CircularRecipient.belongsTo(Circular, { foreignKey: 'circularId', as: 'circular' });
+Circular.hasMany(CircularAttachment, { foreignKey: 'circularId', as: 'attachments' });
+CircularAttachment.belongsTo(Circular, { foreignKey: 'circularId', as: 'circular' });
 
-// 4. Reports (Principal creates, linked to School)
-School.hasMany(require('./MonthlyReport'), { foreignKey: 'schoolId', as: 'reports' });
-require('./MonthlyReport').belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
+// 14. Monthly Reports
+School.hasMany(MonthlyReport, { foreignKey: 'schoolId', as: 'reports' });
+MonthlyReport.belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
 
-Principal.hasMany(require('./MonthlyReport'), { foreignKey: 'principalId', as: 'submittedReports' });
-require('./MonthlyReport').belongsTo(Principal, { foreignKey: 'principalId', as: 'principal' });
+// 15. Notifications
+User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
+Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-// 3. Resources (Teacher uploads, linked to School)
-Teacher.hasMany(require('./Resource'), { foreignKey: 'teacherId', as: 'resources' });
-require('./Resource').belongsTo(Teacher, { foreignKey: 'teacherId', as: 'teacher' });
-
-School.hasMany(require('./Resource'), { foreignKey: 'schoolId', as: 'resources' });
-require('./Resource').belongsTo(School, { foreignKey: 'schoolId', as: 'school' });
-
-// 3. Welfare Requests
-// Request belongs to a Teacher (Creator)
-Teacher.hasMany(WelfareRequest, { foreignKey: 'teacherId', as: 'requests' });
-WelfareRequest.belongsTo(Teacher, { foreignKey: 'teacherId', as: 'teacher' });
-
-// Request belongs to a School (Context)
-School.hasMany(WelfareRequest, { foreignKey: 'SchoolId' });
-WelfareRequest.belongsTo(School, { foreignKey: 'SchoolId', as: 'schoolData' });
-
-// Request Approvals (Tracked by Principal ID -> User ID? Or Principal Profile ID?)
-// Let's track by Principal Profile ID for strictness, or User ID.
-// For simplicity in refactor, keeping it generic or using Principal Profile.
-// WelfareRequest.belongsTo(Principal, { foreignKey: 'approvedByPrincipalId', as: 'approver' });
-
-// Export everything
 module.exports = {
     sequelize,
     User,
+    PasswordReset,
     School,
-    Teacher,
     Principal,
-    Donor,
+    Teacher,
+    Subject,
+    TeacherSubject,
+    Student,
     WelfareRequest,
-    Resource: require('./Resource'),
-    Circular: require('./Circular'),
-    MonthlyReport: require('./MonthlyReport')
+    WelfareRequestDocument,
+    WelfareApproval,
+    Donor,
+    Donation,
+    Transfer,
+    Resource,
+    Circular,
+    CircularRecipient,
+    CircularAttachment,
+    MonthlyReport,
+    Notification
 };

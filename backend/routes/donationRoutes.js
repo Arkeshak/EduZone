@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { createDonation, getDonations, getStats } = require('../controllers/donationController');
-const { protect } = require('../middleware/authMiddleware');
+const { createDonation, getDonations, getStats, verifyDonation } = require('../controllers/donationController');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
-router.post('/', protect, createDonation); // Assuming logged in donors for now
+const upload = require('../middleware/uploadMiddleware');
+
+router.post('/', protect, upload.single('receipt'), createDonation);
 router.get('/', protect, getDonations);
 router.get('/stats', getStats);
+router.patch('/:id/verify', protect, authorize('zeo'), verifyDonation);
+
 
 module.exports = router;

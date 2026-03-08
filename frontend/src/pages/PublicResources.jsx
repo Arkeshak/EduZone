@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import { SUBJECTS, GRADES } from '@/utils/subjects';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Search, BookOpen, Download, Filter, GraduationCap, ArrowLeft, FileText } from 'lucide-react';
-import client from '@/api/client';
-import heroBg from '../assets/education_hero_v2.png';
+import client from '@/services/apiClient';
+import heroBg from '../assets/education_hero.png';
 
 const PublicResources = () => {
     const [resources, setResources] = useState([]);
@@ -111,13 +112,13 @@ const PublicResources = () => {
                         label="Grade"
                         value={filters.grade}
                         onChange={(val) => setFilters({ ...filters, grade: val })}
-                        options={['6', '7', '8', '9', '10', '11', '12', '13']}
+                        options={GRADES}
                     />
                     <FilterSelect
                         label="Subject"
                         value={filters.subject}
                         onChange={(val) => setFilters({ ...filters, subject: val })}
-                        options={['Mathematics', 'Science', 'English', 'History', 'ICT', 'Sinhala', 'Tamil']}
+                        options={SUBJECTS}
                     />
                 </div>
 
@@ -206,6 +207,23 @@ const getColorForSubject = (subject) => {
         case 'science': return 'bg-green-500';
         case 'history': return 'bg-orange-500';
         case 'english': return 'bg-purple-500';
+        case 'sinhala': return 'bg-yellow-600';
+        case 'tamil': return 'bg-red-500';
+        case 'civics education': return 'bg-teal-500';
+        case 'geography': return 'bg-emerald-600';
+        case 'health & physical education': return 'bg-lime-500';
+        case 'ict':
+        case 'information & communication technology': return 'bg-indigo-500';
+        case 'art':
+        case 'music':
+        case 'dancing (traditional)':
+        case 'dancing (oriental)':
+        case 'dancing (western)': return 'bg-pink-500';
+        case 'buddhism':
+        case 'hinduism':
+        case 'islam':
+        case 'christianity':
+        case 'catholicism': return 'bg-amber-500';
         default: return 'bg-slate-500';
     }
 };
@@ -216,6 +234,23 @@ const getColorText = (subject) => {
         case 'science': return 'text-green-600';
         case 'history': return 'text-orange-600';
         case 'english': return 'text-purple-600';
+        case 'sinhala': return 'text-yellow-700';
+        case 'tamil': return 'text-red-600';
+        case 'civics education': return 'text-teal-600';
+        case 'geography': return 'text-emerald-700';
+        case 'health & physical education': return 'text-lime-600';
+        case 'ict':
+        case 'information & communication technology': return 'text-indigo-600';
+        case 'art':
+        case 'music':
+        case 'dancing (traditional)':
+        case 'dancing (oriental)':
+        case 'dancing (western)': return 'text-pink-600';
+        case 'buddhism':
+        case 'hinduism':
+        case 'islam':
+        case 'christianity':
+        case 'catholicism': return 'text-amber-600';
         default: return 'text-slate-600';
     }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -36,6 +36,7 @@ const DashboardLayout = ({ children }) => {
           { name: 'Dashboard', path: '/teacher/dashboard', icon: LayoutDashboard },
           { name: 'Submit Request', path: '/teacher/submit-request', icon: FileText },
           { name: 'Track Requests', path: '/teacher/track-requests', icon: BarChart3 },
+          { name: 'Manage Resources', path: '/teacher/manage-resources', icon: LayoutDashboard },
           { name: 'Upload Resource', path: '/teacher/upload-resource', icon: FileText },
           { name: 'View Circulars', path: '/teacher/circulars', icon: Bell },
           { name: 'Profile', path: '/teacher/profile', icon: User },
@@ -44,6 +45,7 @@ const DashboardLayout = ({ children }) => {
         return [
           { name: 'Dashboard', path: '/principal/dashboard', icon: LayoutDashboard },
           { name: 'Review Requests', path: '/principal/review-requests', icon: FileText },
+          { name: 'Received Funds', path: '/principal/received-funds', icon: DollarSign },
           { name: 'Submit Report', path: '/principal/submit-report', icon: BarChart3 },
           { name: 'View Circulars', path: '/principal/circulars', icon: Bell },
           { name: 'Profile', path: '/principal/profile', icon: User },
@@ -55,7 +57,7 @@ const DashboardLayout = ({ children }) => {
           { name: 'Welfare Approval', path: '/zeo/welfare-approval', icon: FileText },
           { name: 'Donations', path: '/zeo/donations', icon: DollarSign },
           { name: 'Publish Circular', path: '/zeo/publish-circular', icon: Bell },
-          { name: 'Resource Approval', path: '/zeo/resources', icon: FileText },
+
           { name: 'School Reports', path: '/zeo/reports', icon: BarChart3 },
           { name: 'Analytics', path: '/zeo/analytics', icon: BarChart3 },
         ];
@@ -63,7 +65,6 @@ const DashboardLayout = ({ children }) => {
         return [
           { name: 'Dashboard', path: '/donor/dashboard', icon: LayoutDashboard },
           { name: 'Browse Requests', path: '/donor/browse-requests', icon: FileText },
-          { name: 'Make Donation', path: '/donor/make-donation', icon: DollarSign },
           { name: 'Track Donations', path: '/donor/track-donations', icon: BarChart3 },
           { name: 'Profile', path: '/donor/profile', icon: User },
         ];
@@ -140,7 +141,7 @@ const DashboardLayout = ({ children }) => {
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden mr-4 p-2 rounded-md hover:bg-slate-100 text-slate-600">
               <Menu className="w-6 h-6" />
             </button>
-            <h2 className="text-xl font-semibold text-slate-800">Hatton Zonal Education Office</h2>
+            <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-slate-800 truncate">Hatton Zonal Education Office</h2>
           </div>
           <div className="flex items-center space-x-4">
             <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors relative">

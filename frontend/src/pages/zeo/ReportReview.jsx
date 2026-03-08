@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { Card } from '@/app/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table';
+import { Card } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 // Fixing imports: Table is separate in shadcn usually or custom.
 // Using native HTML table or checking project structure. The previous file had specific imports.
 // Let's use standard table structure based on previous file.
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
-import { Button } from '@/app/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
 import { FileText, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import client from '@/api/client';
+import client from '@/services/apiClient';
 
 const ReportReview = () => {
   const [month, setMonth] = useState('February 2024');

@@ -1,4 +1,4 @@
-const LoadingSpinner = ({ size = 'md' }) => {
+﻿const LoadingSpinner = ({ size = 'md' }) => {
   const sizeClasses = {
     sm: 'h-4 w-4',
     md: 'h-8 w-8',

@@ -1,28 +1,43 @@
-const { Resource, Teacher, School } = require('../models');
+const { Resource, Teacher, School, Subject, User } = require('../models');
 
 // @desc    Upload a new resource (Teacher)
 // @route   POST /api/resources
 // @access  Private (Teacher)
 const uploadResource = async (req, res) => {
     try {
-        const { title, description, grade, subject, fileUrl } = req.body;
+        let { title, description, grade, subjectId, subject } = req.body;
+        const fileUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
-        // Fetch Teacher Profile to get School ID
+        if (!fileUrl) {
+            return res.status(400).json({ message: 'File upload is required.' });
+        }
+
         const teacherProfile = await Teacher.findOne({ where: { userId: req.user.id } });
-
         if (!teacherProfile) {
             return res.status(400).json({ message: 'Teacher profile not found.' });
+        }
+
+        // Resolve subjectId if only subject name is provided
+        if (!subjectId && subject) {
+            const [subjectObj] = await Subject.findOrCreate({
+                where: { name: subject }
+            });
+            subjectId = subjectObj.id;
+        }
+
+        if (!subjectId) {
+            return res.status(400).json({ message: 'Subject is required.' });
         }
 
         const resource = await Resource.create({
             title,
             description,
             grade,
-            subject,
+            subjectId,
             fileUrl,
             teacherId: teacherProfile.id,
             schoolId: teacherProfile.schoolId,
-            status: 'Pending'
+            status: 'PUBLISHED'
         });
 
         res.status(201).json(resource);
@@ -31,58 +46,15 @@ const uploadResource = async (req, res) => {
     }
 };
 
-// @desc    Get all resources for ZEO approval
-// @route   GET /api/resources/pending
-// @access  Private (ZEO)
-const getPendingResources = async (req, res) => {
-    try {
-        const resources = await Resource.findAll({
-            where: { status: 'Pending' },
-            order: [['createdAt', 'DESC']]
-        });
-        res.json(resources);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// @desc    Approve or Reject Resource (ZEO)
-// @route   PUT /api/resources/:id/status
-// @access  Private (ZEO)
-const updateResourceStatus = async (req, res) => {
-    try {
-        const { status } = req.body; // 'Approved' or 'Rejected'
-        const resource = await Resource.findByPk(req.params.id);
-
-        if (!resource) {
-            return res.status(404).json({ message: 'Resource not found' });
-        }
-
-        resource.status = status;
-        await resource.save();
-
-        res.json({ message: `Resource ${status}`, resource });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// @desc    Get Public Resources (Approved only)
-// @route   GET /api/resources/public
-// @access  Public
+// @desc    Get Public Resources
 const getPublicResources = async (req, res) => {
     try {
-        const { subject, grade, search } = req.query;
-        let whereClause = { status: 'Approved' };
+        const { subjectId, grade, search } = req.query;
+        let whereClause = { status: 'PUBLISHED' };
 
-        if (subject && subject !== 'All') {
-            whereClause.subject = subject;
-        }
-        if (grade && grade !== 'All') {
-            whereClause.grade = grade;
-        }
+        if (subjectId) whereClause.subjectId = subjectId;
+        if (grade && grade !== 'All') whereClause.grade = grade;
 
-        // Basic search implementation
         if (search) {
             const { Op } = require('sequelize');
             whereClause.title = { [Op.like]: `%${search}%` };
@@ -90,10 +62,146 @@ const getPublicResources = async (req, res) => {
 
         const resources = await Resource.findAll({
             where: whereClause,
+            include: [
+                { model: Subject, as: 'subject', attributes: ['name'] },
+                {
+                    model: Teacher,
+                    as: 'teacher',
+                    include: [{ model: User, as: 'user', attributes: ['fullName'] }]
+                }
+            ],
             order: [['createdAt', 'DESC']]
         });
 
-        res.json(resources);
+        const formatted = resources.map(r => {
+            const json = r.toJSON();
+            if (json.subject) {
+                json.subject = json.subject.name;
+            }
+            if (json.teacher && json.teacher.user) {
+                json.teacherName = json.teacher.user.fullName;
+            }
+            return json;
+        });
+
+        res.json(formatted);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get resources uploaded by teacher
+const getMyResources = async (req, res) => {
+
+    try {
+
+
+        const teacherProfile = await Teacher.findOne({ where: { userId: req.user.id } });
+        if (!teacherProfile) {
+
+            return res.status(404).json({ message: 'Teacher profile not found' });
+        }
+
+
+
+        const resources = await Resource.findAll({
+            where: { teacherId: teacherProfile.id },
+            include: [
+                { model: Subject, as: 'subject', attributes: ['name'] },
+                {
+                    model: Teacher,
+                    as: 'teacher',
+                    include: [{ model: User, as: 'user', attributes: ['fullName'] }]
+                }
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+
+
+        const formatted = resources.map(r => {
+            const json = r.toJSON();
+            if (json.subject) {
+                json.subject = json.subject.name;
+            }
+            if (json.teacher && json.teacher.user) {
+                json.teacherName = json.teacher.user.fullName;
+            }
+            return json;
+        });
+
+        res.json(formatted);
+    } catch (error) {
+
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update a resource
+const updateResource = async (req, res) => {
+    try {
+        let { title, description, grade, subjectId, subject } = req.body;
+        const resource = await Resource.findByPk(req.params.id);
+
+        if (!resource) return res.status(404).json({ message: 'Resource not found' });
+
+        const teacherProfile = await Teacher.findOne({ where: { userId: req.user.id } });
+        if (!teacherProfile || resource.teacherId !== teacherProfile.id) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        // Resolve subjectId if only subject name is provided
+        if (!subjectId && subject) {
+            const [subjectObj] = await Subject.findOrCreate({
+                where: { name: subject }
+            });
+            subjectId = subjectObj.id;
+        }
+
+        const updateData = {
+            title: title || resource.title,
+            description: description || resource.description,
+            grade: grade || resource.grade,
+            subjectId: subjectId || resource.subjectId
+        };
+
+        if (req.file) {
+            updateData.fileUrl = `/uploads/${req.file.filename}`;
+        }
+
+        await resource.update(updateData);
+
+        // Fetch again with includes to return formatted data
+        const updated = await Resource.findByPk(resource.id, {
+            include: [
+                { model: Subject, as: 'subject', attributes: ['name'] },
+                { model: Teacher, as: 'teacher', include: [{ model: User, as: 'user', attributes: ['fullName'] }] }
+            ]
+        });
+
+        const json = updated.toJSON();
+        if (json.subject) json.subject = json.subject.name;
+        if (json.teacher && json.teacher.user) json.teacherName = json.teacher.user.fullName;
+
+        res.json({ message: 'Resource updated', resource: json });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Delete a resource
+const deleteResource = async (req, res) => {
+    try {
+        const resource = await Resource.findByPk(req.params.id);
+        if (!resource) return res.status(404).json({ message: 'Resource not found' });
+
+        const teacherProfile = await Teacher.findOne({ where: { userId: req.user.id } });
+        if (!teacherProfile || resource.teacherId !== teacherProfile.id) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        await resource.destroy();
+        res.json({ message: 'Resource deleted successfully' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -101,7 +209,8 @@ const getPublicResources = async (req, res) => {
 
 module.exports = {
     uploadResource,
-    getPendingResources,
-    updateResourceStatus,
-    getPublicResources
+    getPublicResources,
+    getMyResources,
+    updateResource,
+    deleteResource
 };

@@ -1,16 +1,19 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GRADES, SECTIONS } from '@/utils/subjects';
 import { useAuth } from '@/context/AuthContext';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import client from '@/api/client';
+import FileUploader from '@/components/FileUploader';
+import client from '@/services/apiClient';
 
 const SubmitWelfareRequest = () => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     studentName: '',
     grade: '',
+    section: 'A', // Default section
     welfareType: '',
     description: '',
     estimatedCost: '',
@@ -37,9 +40,11 @@ const SubmitWelfareRequest = () => {
     // console.log('Submitting for school:', user.school);
 
     try {
+      const fullGrade = `${formData.grade}-${formData.section}`;
+
       await client.post('/welfare', {
         studentName: formData.studentName,
-        grade: formData.grade,
+        grade: fullGrade,
         category: formData.welfareType, // Mapping welfareType to category
         description: formData.description,
         cost: parseFloat(formData.estimatedCost),
@@ -91,16 +96,34 @@ const SubmitWelfareRequest = () => {
                   placeholder="Enter student name"
                 />
               </div>
-              <div>
-                <label className="block text-sm mb-2">Grade/Class *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.grade}
-                  onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="e.g. 10-A"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-sm mb-2">Grade *</label>
+                  <select
+                    required
+                    value={formData.grade}
+                    onChange={(e) => setFormData({ ...formData, grade: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select</option>
+                    {GRADES.map(g => (
+                      <option key={g} value={g}>{g}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm mb-2">Section *</label>
+                  <select
+                    required
+                    value={formData.section}
+                    onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {SECTIONS.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -145,25 +168,14 @@ const SubmitWelfareRequest = () => {
             </div>
 
             <div>
-              <label className="block text-sm mb-2">Supporting Documents</label>
-              <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
-                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <input
-                  type="file"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="file-upload"
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <span className="text-blue-600 hover:underline">Upload a file</span>
-                  <span className="text-gray-500"> or drag and drop</span>
-                </label>
-                <p className="text-xs text-gray-500 mt-1">PDF, DOC, JPG up to 10MB</p>
-                {formData.supportingDocument && (
-                  <p className="text-sm text-green-600 mt-2">{formData.supportingDocument.name}</p>
-                )}
-              </div>
+              <FileUploader
+                id="welfare-document"
+                label="Supporting Documents"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                onChange={handleFileChange}
+                file={formData.supportingDocument}
+                helperText="PDF, DOC, JPG up to 10MB"
+              />
             </div>
 
             <div className="flex gap-3 pt-4">

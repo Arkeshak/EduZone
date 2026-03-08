@@ -7,14 +7,25 @@ const Donor = db.define('Donor', {
         primaryKey: true,
         autoIncrement: true
     },
+    userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        unique: true,
+        field: 'user_id'
+    },
     organizationName: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
+        field: 'organization_name'
     },
-    totalDonations: {
-        type: DataTypes.DECIMAL(10, 2),
-        defaultValue: 0.00
+    contactNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'contact_number'
     }
+}, {
+    tableName: 'donors',
+    underscored: true
 });
 
 module.exports = Donor;

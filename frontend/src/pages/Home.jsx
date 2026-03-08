@@ -1,7 +1,8 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { GraduationCap, Heart, FileText, Users, School, Building, ArrowRight, Sparkles, BookOpen, MonitorPlay, Award, LogIn } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
-import heroBg from '../assets/education_hero_v2.png';
+import { Button } from '@/components/ui/button';
+import heroBg from '../assets/education_hero.png';
+import zeoDashboardPreview from '../assets/zeo_dashboard_preview.png';
 
 const Home = () => {
   return (
@@ -32,15 +33,15 @@ const Home = () => {
           </div>
           <div className="flex items-center space-x-4">
             <Link to="/resources" className="text-white/80 hover:text-white transition-colors font-medium text-sm flex items-center bg-white/5 px-3 py-1.5 rounded-full hover:bg-white/10">
-              <BookOpen className="w-4 h-4 mr-2" /> Library
+              <BookOpen className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Library</span>
             </Link>
             <Link to="/login">
-              <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-blue-200 transition-colors font-semibold">
-                <LogIn className="w-4 h-4 mr-2" /> Staff Login
+              <Button variant="ghost" className="text-white hover:bg-white/10 hover:text-blue-200 transition-colors font-semibold px-2 sm:px-4">
+                <LogIn className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Staff Login</span>
               </Button>
             </Link>
             <Link to="/donor/register">
-              <Button className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-slate-900 font-bold border-0 shadow-[0_0_20px_rgba(251,191,36,0.4)] transition-all hover:scale-105">
+              <Button className="bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-slate-900 font-bold border-0 shadow-[0_0_20px_rgba(251,191,36,0.4)] transition-all hover:scale-105 text-xs px-3 sm:text-base sm:px-4">
                 Become a Donor
               </Button>
             </Link>
@@ -59,9 +60,9 @@ const Home = () => {
               Empowering The Hatton Zone
             </div>
 
-            <h1 className="text-5xl md:text-8xl font-black text-white tracking-tight leading-tight drop-shadow-2xl">
-              Forging a <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-white to-purple-300">Brighter Future</span>
+            <h1 className="text-4xl md:text-6xl lg:text-8xl font-black text-white tracking-tight leading-tight drop-shadow-2xl">
+              Empowering Education, <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 via-white to-purple-300">Connecting Futures</span>
             </h1>
 
             <p className="text-xl text-slate-300 max-w-2xl mx-auto leading-relaxed font-light drop-shadow-lg">
@@ -127,11 +128,10 @@ const Home = () => {
                 </div>
 
                 {/* Decorative UI Element */}
-                <div className="w-full max-w-sm h-64 bg-black/40 rounded-2xl border border-white/10 p-4 relative backdrop-blur-md transform rotate-2 group-hover:rotate-0 transition-transform duration-700">
-                  <div className="absolute top-4 left-4 right-4 h-4 bg-white/10 rounded-full"></div>
-                  <div className="absolute top-12 left-4 w-1/3 h-20 bg-blue-500/20 rounded-lg border border-blue-500/30"></div>
-                  <div className="absolute top-12 right-4 w-1/2 h-20 bg-purple-500/20 rounded-lg border border-purple-500/30"></div>
-                  <div className="absolute bottom-4 left-4 right-4 h-24 bg-gradient-to-t from-orange-500/20 to-transparent rounded-lg border-b border-orange-500/30"></div>
+                <div className="w-full max-w-sm h-64 rounded-2xl border border-white/10 p-2 relative backdrop-blur-md transform rotate-2 group-hover:rotate-0 transition-transform duration-700 shadow-2xl">
+                  <img src={zeoDashboardPreview} alt="ZEO Dashboard" className="w-full h-full object-cover rounded-xl" />
+                  {/* Glare effect */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
                 </div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { FileQuestion, Home } from 'lucide-react';
 
 const NotFound = () => {

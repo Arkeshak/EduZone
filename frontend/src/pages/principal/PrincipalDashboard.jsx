@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { FileText, CheckCircle, XCircle, AlertCircle, BarChart3, ArrowUpRight, Edit } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import client from '@/api/client';
+import client from '@/services/apiClient';
 import { useAuth } from '@/context/AuthContext';
 
 const PrincipalDashboard = () => {

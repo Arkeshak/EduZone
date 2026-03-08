@@ -1,7 +1,5 @@
 const { DataTypes } = require('sequelize');
 const db = require('../config/db');
-const User = require('./User');
-const WelfareRequest = require('./WelfareRequest');
 
 const Donation = db.define('Donation', {
     id: {
@@ -9,33 +7,47 @@ const Donation = db.define('Donation', {
         primaryKey: true,
         autoIncrement: true
     },
+    donorId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        field: 'donor_id'
+    },
+    schoolId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'school_id'
+    },
+    welfareRequestId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        field: 'welfare_request_id'
+    },
     amount: {
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false
     },
-    description: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    allocation: {
-        type: DataTypes.STRING,
-        defaultValue: 'General Fund'
-    },
-    isAnonymous: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
+    paymentMethod: {
+        type: DataTypes.ENUM('ONLINE', 'BANK_TRANSFER'),
+        allowNull: false,
+        field: 'payment_method'
     },
     status: {
-        type: DataTypes.ENUM('Pending', 'Completed', 'Failed'),
-        defaultValue: 'Completed'
+        type: DataTypes.ENUM('PENDING', 'VERIFIED', 'REJECTED'),
+        defaultValue: 'PENDING'
     },
-    transactionId: {
+    receiptReference: {
         type: DataTypes.STRING,
-        allowNull: true
+        allowNull: true,
+        field: 'receipt_reference'
     }
+}, {
+    tableName: 'donations',
+    underscored: true,
+    indexes: [
+        {
+            fields: ['status']
+        }
+    ]
 });
-
-// Associations handled in models/index.js
-// Donation.belongsTo(User, ...) -> Removed/Changed to Donor Profile
 
 module.exports = Donation;

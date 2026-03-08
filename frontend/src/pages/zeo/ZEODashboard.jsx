@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, School, Wallet, FileCheck, ArrowUpRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import client from '@/api/client';
+import client from '@/services/apiClient';
 
 const ZEODashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -31,10 +31,9 @@ const ZEODashboard = () => {
     const fetchStats = async () => {
       try {
         // Fetch real data
-        const [donationsRes, welfareRes, usersRes] = await Promise.all([
+        const [donationsRes, welfareRes] = await Promise.all([
           client.get('/donations/stats'),
-          client.get('/welfare'),
-          client.get('/auth/users') // Only if this endpoint exists now, or simulate
+          client.get('/welfare')
         ]);
 
         const pendingApprovals = welfareRes.data.filter(r => r.status === 'Approved by Principal').length; // Ready for ZEO

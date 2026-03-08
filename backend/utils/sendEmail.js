@@ -32,7 +32,8 @@ const sendEmail = async (options) => {
         from: `${process.env.FROM_NAME} <${process.env.FROM_EMAIL}>`,
         to: options.email,
         subject: options.subject,
-        text: options.message
+        text: options.message,
+        html: options.html || (options.message && options.message.includes('<') ? options.message : null)
     };
 
     console.log(`[sendEmail] Connecting to ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}...`);

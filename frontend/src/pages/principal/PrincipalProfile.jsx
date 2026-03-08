@@ -1,37 +1,70 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
+import ChangePassword from '@/components/ChangePassword';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
-import { User, Building, Phone, Mail, Save, Edit } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { User, Building, Phone, Mail, Save, Edit, Landmark } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import client from '@/services/apiClient';
 
 const PrincipalProfile = () => {
-  console.log('Rendering PrincipalProfile'); // DEBUG LOG
+  console.log('Rendering PrincipalProfile');
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
-    school: ''
+    school: '',
+    bankName: '',
+    branch: '',
+    accountNumber: '',
+    accountName: ''
   });
 
-  // Sync with user data when it loads
   useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name || 'Principal Name',
-        phone: '+94 71 234 5678', // Mock default
-        school: user.school || 'Hatton High School' // Mock default or from user
-      });
-    }
+    const fetchData = async () => {
+      if (user) {
+        try {
+          // Fetch School Details
+          const { data: schoolData } = await client.get('/schools/my-school');
+
+          setFormData({
+            name: user.name || 'Principal',
+            phone: '+94 71 234 5678', // Mock
+            school: schoolData.name || 'Unknown School',
+            bankName: schoolData.bankName || '',
+            branch: schoolData.branch || '',
+            accountNumber: schoolData.accountNumber || '',
+            accountName: schoolData.accountName || ''
+          });
+        } catch (error) {
+          console.error("Failed to fetch school", error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    fetchData();
   }, [user]);
 
-  const handleSave = () => {
-    setIsEditing(false);
-    toast.success("Profile updated successfully!");
+  const handleSave = async () => {
+    try {
+      await client.put('/schools/my-school', {
+        bankName: formData.bankName,
+        branch: formData.branch,
+        accountNumber: formData.accountNumber,
+        accountName: formData.accountName
+      });
+      setIsEditing(false);
+      toast.success("School Bank Details updated successfully!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update details");
+    }
   };
 
   if (!user) {
@@ -117,6 +150,56 @@ const PrincipalProfile = () => {
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Bank Details Section */}
+              <div className="pt-6 border-t mt-6">
+                <h3 className="text-lg font-bold flex items-center mb-4 text-gray-800">
+                  <Landmark className="w-5 h-5 mr-2 text-blue-600" />
+                  School Bank Account Details (For ZEO Transfers)
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 rounded-lg border border-slate-200">
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Bank Name</p>
+                    {isEditing ? (
+                      <Input value={formData.bankName} onChange={(e) => setFormData({ ...formData, bankName: e.target.value })} placeholder="e.g. Bank of Ceylon" />
+                    ) : (
+                      <p className="font-medium">{formData.bankName || 'Not Set'}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Branch</p>
+                    {isEditing ? (
+                      <Input value={formData.branch} onChange={(e) => setFormData({ ...formData, branch: e.target.value })} placeholder="e.g. Hatton" />
+                    ) : (
+                      <p className="font-medium">{formData.branch || 'Not Set'}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Account Number</p>
+                    {isEditing ? (
+                      <Input value={formData.accountNumber} onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })} placeholder="xxxxxxxxxx" />
+                    ) : (
+                      <p className="font-mono font-medium">{formData.accountNumber || 'Not Set'}</p>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Account Name</p>
+                    {isEditing ? (
+                      <Input value={formData.accountName} onChange={(e) => setFormData({ ...formData, accountName: e.target.value })} placeholder="e.g. Hatton Central College SDF" />
+                    ) : (
+                      <p className="font-medium">{formData.accountName || 'Not Set'}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t mt-6">
+                <h3 className="text-lg font-bold flex items-center mb-4 text-gray-800">
+                  Security
+                </h3>
+                <ChangePassword />
               </div>
             </div>
           </CardContent>

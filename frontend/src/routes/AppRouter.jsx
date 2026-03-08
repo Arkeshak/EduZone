@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import ProtectedRoute from './ProtectedRoute';
 
@@ -11,21 +11,24 @@ import NotFound from '@/pages/NotFound';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import PublicResources from '@/pages/PublicResources';
+import ActivateAccount from '@/pages/ActivateAccount';
 
 // Teacher pages
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
 import SubmitWelfareRequest from '@/pages/teacher/SubmitWelfareRequest';
 import TrackWelfareRequests from '@/pages/teacher/TrackWelfareRequests';
 import UploadResource from '@/pages/teacher/UploadResource';
+import ManageResources from '@/pages/teacher/ManageResources';
 import TeacherCirculars from '@/pages/teacher/TeacherCirculars';
 import TeacherProfile from '@/pages/teacher/TeacherProfile';
 
 // Principal pages
 import PrincipalDashboard from '@/pages/principal/PrincipalDashboard';
-import ReviewWelfareRequests from '@/pages/principal/ReviewWelfareRequests';
+import ReviewRequests from '@/pages/principal/ReviewRequests';
 import SubmitReport from '@/pages/principal/SubmitReport';
 import PrincipalCirculars from '@/pages/principal/PrincipalCirculars';
 import PrincipalProfile from '@/pages/principal/PrincipalProfile';
+import ReceivedFunds from '@/pages/principal/ReceivedFunds';
 
 // ZEO pages
 import ZEODashboard from '@/pages/zeo/ZEODashboard';
@@ -33,7 +36,7 @@ import UserManagement from '@/pages/zeo/UserManagement';
 import WelfareApproval from '@/pages/zeo/WelfareApproval';
 import DonationManagement from '@/pages/zeo/DonationManagement';
 import PublishCircular from '@/pages/zeo/PublishCircular';
-import ResourceApproval from '@/pages/zeo/ResourceApproval';
+
 import ReportReview from '@/pages/zeo/ReportReview';
 import Analytics from '@/pages/zeo/Analytics';
 
@@ -56,7 +59,8 @@ const AppRouter = () => {
           <Route path="/donor/register" element={<DonorRegistration />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/activate-account/:token" element={<ActivateAccount />} />
 
           {/* Teacher routes */}
           <Route path="/teacher/dashboard" element={
@@ -79,6 +83,11 @@ const AppRouter = () => {
               <UploadResource />
             </ProtectedRoute>
           } />
+          <Route path="/teacher/manage-resources" element={
+            <ProtectedRoute allowedRoles={['teacher']}>
+              <ManageResources />
+            </ProtectedRoute>
+          } />
           <Route path="/teacher/circulars" element={
             <ProtectedRoute allowedRoles={['teacher']}>
               <TeacherCirculars />
@@ -98,7 +107,7 @@ const AppRouter = () => {
           } />
           <Route path="/principal/review-requests" element={
             <ProtectedRoute allowedRoles={['principal']}>
-              <ReviewWelfareRequests />
+              <ReviewRequests />
             </ProtectedRoute>
           } />
           <Route path="/principal/submit-report" element={
@@ -109,6 +118,11 @@ const AppRouter = () => {
           <Route path="/principal/circulars" element={
             <ProtectedRoute allowedRoles={['principal']}>
               <PrincipalCirculars />
+            </ProtectedRoute>
+          } />
+          <Route path="/principal/received-funds" element={
+            <ProtectedRoute allowedRoles={['principal']}>
+              <ReceivedFunds />
             </ProtectedRoute>
           } />
           <Route path="/principal/profile" element={
@@ -143,11 +157,7 @@ const AppRouter = () => {
               <PublishCircular />
             </ProtectedRoute>
           } />
-          <Route path="/zeo/resources" element={
-            <ProtectedRoute allowedRoles={['zeo']}>
-              <ResourceApproval />
-            </ProtectedRoute>
-          } />
+
           <Route path="/zeo/reports" element={
             <ProtectedRoute allowedRoles={['zeo']}>
               <ReportReview />

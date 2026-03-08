@@ -1,1 +1,0 @@
-{"stack":"Error: Registration failed: {\"message\":\"Email could not be sent\"}\n    at runTest (C:\\Users\\ASUS\\Desktop\\Eduzone\\backend\\verify_registration_flow.js:47:19)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)","message":"Registration failed: {\"message\":\"Email could not be sent\"}"}

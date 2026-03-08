@@ -1,8 +1,10 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
+import { validatePassword } from '@/utils/passwordValidation';
 import { useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, User, Mail, Lock, Phone, MapPin, AlertCircle, CheckCircle } from 'lucide-react';
+import { GraduationCap, User, Mail, Lock, Phone, MapPin, AlertCircle, CheckCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { authApi } from '@/api/authApi';
+import { authApi } from '@/services/authService';
+import donationBg from '../assets/donation_hero.png';
 
 const DonorRegistration = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +16,8 @@ const DonorRegistration = () => {
     address: '',
     organizationName: '',
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState('');
@@ -27,6 +31,12 @@ const DonorRegistration = () => {
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -68,14 +78,19 @@ const DonorRegistration = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-lg shadow-xl max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-10 h-10 text-green-600" />
+      <div className="min-h-screen relative flex items-center justify-center p-4">
+        {/* Background Image & Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img src={donationBg} alt="Background" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-br from-green-900/90 to-slate-900/90 backdrop-blur-sm"></div>
+        </div>
+
+        <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[2rem] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] max-w-md w-full text-center relative z-10 animate-in fade-in zoom-in">
+          <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/30">
+            <CheckCircle className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-2xl mb-2">Registration Successful!</h2>
-          <p className="text-gray-600 mb-4">Your email has been verified. You can now login.</p>
-          <p className="text-sm text-gray-500">Redirecting to login...</p>
+          <h2 className="text-3xl font-bold text-white mb-2">Registration Successful!</h2>
+          <p className="text-slate-300 mb-6">Your email has been verified. You can now login.</p>
         </div>
       </div>
     );
@@ -83,42 +98,48 @@ const DonorRegistration = () => {
 
   if (isVerifying) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <Mail className="w-8 h-8 text-blue-600" />
+      <div className="min-h-screen relative flex items-center justify-center p-4">
+        {/* Background Image & Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img src={donationBg} alt="Background" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-br from-pink-900/90 to-slate-900/90 backdrop-blur-sm"></div>
+        </div>
+
+        <div className="max-w-md w-full bg-white/10 backdrop-blur-xl rounded-[2rem] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] p-8 text-center relative z-10 animate-in fade-in zoom-in">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-pink-600 rounded-2xl mb-6 shadow-lg shadow-pink-600/30 rotate-3">
+            <Mail className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">Verify Your Email</h2>
-          <p className="text-gray-600 mb-6">We've sent a 6-digit code to <b>{formData.email}</b>. Please enter it below.</p>
+          <h2 className="text-3xl font-bold text-white mb-2">Verify Your Email</h2>
+          <p className="text-slate-300 mb-8">We've sent a 6-digit code to <b>{formData.email}</b>. Please enter it below.</p>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-red-700 text-left">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-200 text-sm backdrop-blur-md">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleVerify} className="space-y-4">
+          <form onSubmit={handleVerify} className="space-y-6">
             <input
               type="text"
               required
               maxLength="6"
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value)}
-              className="w-full text-center text-3xl tracking-widest py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-center text-4xl tracking-[1em] py-4 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all font-mono"
               placeholder="000000"
             />
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="w-full bg-pink-600 hover:bg-pink-700 text-white py-3.5 rounded-xl font-bold shadow-lg disabled:opacity-50 transition-all transform hover:-translate-y-0.5"
             >
               {loading ? <LoadingSpinner size="sm" /> : 'Verify Email'}
             </button>
           </form>
           <button
             onClick={() => setIsVerifying(false)}
-            className="mt-4 text-sm text-gray-500 hover:text-gray-700"
+            className="mt-6 text-sm text-slate-400 hover:text-white transition-colors"
           >
             Back to Registration
           </button>
@@ -128,143 +149,165 @@ const DonorRegistration = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full">
+    <div className="min-h-screen relative flex items-center justify-center p-4">
+      {/* Background Image & Overlay */}
+      <div className="absolute inset-0 z-0">
+        <img src={donationBg} alt="Background" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-br from-pink-900/90 to-slate-900/90 backdrop-blur-sm"></div>
+      </div>
+
+      <div className="max-w-2xl w-full relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-500">
+        <Link to="/login" className="inline-flex items-center text-sm text-slate-300 hover:text-white mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Back to Login
+        </Link>
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-            <GraduationCap className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-pink-600 rounded-2xl mb-6 shadow-lg shadow-pink-600/30 rotate-3 transform hover:scale-110 transition-transform">
+            <GraduationCap className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-3xl text-gray-900 mb-2">Donor Registration</h1>
-          <p className="text-gray-600">Join us in supporting students in need</p>
+          <h1 className="text-4xl font-bold text-white mb-2">Donor Registration</h1>
+          <p className="text-pink-200 text-lg font-medium">Join us in supporting students in need</p>
         </div>
 
-        <div className="bg-white rounded-lg shadow-xl p-8">
+        <div className="bg-white/10 backdrop-blur-xl rounded-[2rem] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] p-8 md:p-10">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center gap-2 text-red-700">
-              <AlertCircle className="w-5 h-5" />
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-200 text-sm backdrop-blur-md">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
               <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm mb-2 text-gray-700">Full Name *</label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Full Name</label>
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                   <input
                     type="text"
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="John Doe"
+                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
+                    placeholder="enter your name...."
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm mb-2 text-gray-700">Email Address *</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                   <input
                     type="email"
                     required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="john@example.com"
+                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
+                    placeholder="enter your email...."
                   />
                 </div>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm mb-2 text-gray-700">Password *</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Password</label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     required
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="••••••••"
+                    className="w-full pl-12 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
+                    placeholder="enter your password...."
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors focus:outline-none"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm mb-2 text-gray-700">Confirm Password *</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300 ml-1">Confirm Password</label>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                   <input
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     required
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="••••••••"
+                    className="w-full pl-12 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
+                    placeholder="enter your confirm password...."
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors focus:outline-none"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm mb-2 text-gray-700">Phone Number *</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300 ml-1">Phone Number</label>
+              <div className="relative group">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                 <input
                   type="tel"
                   required
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="+94 77 123 4567"
+                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
+                  placeholder="enter your phone number...."
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm mb-2 text-gray-700">Address *</label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300 ml-1">Address</label>
+              <div className="relative group">
+                <MapPin className="absolute left-4 top-4 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                 <textarea
                   required
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows="2"
-                  placeholder="Your address"
+                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all min-h-[100px]"
+                  placeholder="enter your address...."
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm mb-2 text-gray-700">Organization Name (Optional)</label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-300 ml-1">Organization Name (Optional)</label>
               <input
                 type="text"
                 value={formData.organizationName}
                 onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Your organization"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
+                placeholder="enter your organization (optional)...."
               />
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full bg-pink-600 hover:bg-pink-700 hover:scale-[1.02] text-white py-3.5 rounded-xl font-bold shadow-[0_4px_14px_rgba(236,72,153,0.4)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-300"
             >
               {loading ? <LoadingSpinner size="sm" /> : 'Register as Donor'}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+          <div className="mt-8 text-center pt-6 border-t border-white/10">
+            <p className="text-sm text-slate-300">
               Already have an account?{' '}
-              <Link to="/login" className="text-blue-600 hover:underline">
+              <Link to="/login" className="text-pink-400 hover:text-white transition-colors font-bold">
                 Login here
               </Link>
             </p>

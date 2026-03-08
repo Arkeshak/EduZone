@@ -1,8 +1,9 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
-import { Input } from '@/app/components/ui/input';
+import ChangePassword from '@/components/ChangePassword';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { User, Mail, Phone, MapPin, Building, BookOpen, Calendar, Save } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
@@ -116,6 +117,9 @@ const TeacherProfile = () => {
                 </div>
               </div>
 
+
+
+
               <div className="pt-6 border-t">
                 <h3 className="font-medium mb-3 flex items-center">
                   <BookOpen className="w-4 h-4 mr-2 text-blue-600" />
@@ -126,11 +130,19 @@ const TeacherProfile = () => {
                   <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">Science</span>
                 </div>
               </div>
+
+              <div className="pt-6 border-t">
+                <h3 className="font-medium mb-3 flex items-center">
+                  Security
+                </h3>
+                <ChangePassword />
+              </div>
+
             </CardContent>
           </Card>
-        </div>
-      </div>
-    </DashboardLayout>
+        </div >
+      </div >
+    </DashboardLayout >
   );
 };
 

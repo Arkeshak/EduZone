@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { Card, CardContent } from '@/app/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Heart, TrendingUp } from 'lucide-react';
-import { Button } from '@/app/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import client from '@/api/client';
+import client from '@/services/apiClient';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import quickActionIcon from '@/assets/quick_action_donate.png';
+import emptyStateIcon from '@/assets/empty_state_donation.png';
 
 const DonorDashboard = () => {
   const [stats, setStats] = useState({
@@ -85,10 +87,13 @@ const DonorDashboard = () => {
           </Card>
 
           {/* Quick Action */}
-          <Card className="bg-white flex flex-col justify-center items-center p-6 border-dashed border-2 border-gray-200">
-            <p className="text-center text-gray-500 mb-4">Ready to help more?</p>
+          <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 flex flex-col justify-center items-center p-6 border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="w-20 h-20 mb-4 drop-shadow-lg">
+              <img src={quickActionIcon} alt="Donate" className="w-full h-full object-contain" />
+            </div>
+            <p className="text-center text-gray-600 font-medium mb-4">Make a direct impact today.</p>
             <Link to="/donor/browse-requests">
-              <Button className="bg-blue-600 hover:bg-blue-700">Browse New Requests</Button>
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full shadow-lg shadow-blue-500/30">Browse Verified Requests</Button>
             </Link>
           </Card>
         </div>
@@ -98,8 +103,12 @@ const DonorDashboard = () => {
           <Card>
             <CardContent className="p-0">
               {stats.history.length === 0 ? (
-                <div className="p-10 text-center text-gray-500">
-                  <p>No donations yet. Start your journey today!</p>
+                <div className="p-10 flex flex-col items-center justify-center text-center text-gray-500">
+                  <div className="w-32 h-32 mb-4 opacity-90">
+                    <img src={emptyStateIcon} alt="No donations yet" className="w-full h-full object-contain" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-700 mb-1">Your journey starts here</h3>
+                  <p className="text-sm max-w-xs mx-auto">Make your first donation to see your impact history grow.</p>
                 </div>
               ) : (
                 <div className="divide-y">
