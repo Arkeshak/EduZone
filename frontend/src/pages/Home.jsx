@@ -4,6 +4,13 @@ import { Button } from '@/components/ui/button';
 import heroBg from '../assets/education_hero.png';
 import zeoDashboardPreview from '../assets/zeo_dashboard_preview.png';
 
+/**
+ * Home Component
+ * @desc The landing page for the EduZone application.
+ *       Features an immersive background, animated statistics, and portal entry points
+ *       for Teachers, Principals, ZEO Admins, and Donors.
+ *       Fully responsive layout utilizing Tailwind CSS.
+ */
 const Home = () => {
   return (
     <div className="min-h-screen bg-slate-950 relative font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">

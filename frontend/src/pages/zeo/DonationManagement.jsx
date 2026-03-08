@@ -15,6 +15,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+/**
+ * DonationManagement Component
+ * @desc Interface for ZEOs to review incoming donor payments.
+ *       Allows ZEO administration to verify donation receipts, reject invalid ones, 
+ *       and seamlessly initiate a fund transfer to the target school's bank account
+ *       using a multi-step modal flow.
+ */
 const DonationManagement = () => {
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);

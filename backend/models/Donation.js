@@ -1,6 +1,10 @@
 const { DataTypes } = require('sequelize');
 const db = require('../config/db');
 
+/**
+ * Donation Model
+ * Represents a financial contribution from a Donor towards a School or a specific Welfare Request.
+ */
 const Donation = db.define('Donation', {
     id: {
         type: DataTypes.INTEGER,

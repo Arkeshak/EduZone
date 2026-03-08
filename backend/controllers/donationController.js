@@ -1,6 +1,12 @@
 const { Donation, User, Donor, WelfareRequest, School, Notification, WelfareApproval, sequelize } = require('../models');
 
-// @desc    Create new donation
+/**
+ * @desc    Create a new donation
+ * @route   POST /api/donations
+ * @access  Public / Private (Donor)
+ * @details Records a new donation. Links to a donor profile if authenticated, 
+ *          or tracks as anonymous if not. Stores the receipt/reference code for ZEO verification.
+ */
 const createDonation = async (req, res) => {
 
 
@@ -43,7 +49,13 @@ const createDonation = async (req, res) => {
     }
 };
 
-// @desc    Get donations
+/**
+ * @desc    Get donations history
+ * @route   GET /api/donations
+ * @access  Private (Donor / ZEO)
+ * @details ZEO sees a paginated list of all donations with associated school/donor info for verification.
+ *          Donors only see their own personal donation history.
+ */
 const getDonations = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10);
@@ -109,7 +121,12 @@ const getDonations = async (req, res) => {
     }
 };
 
-// @desc    Get stats
+/**
+ * @desc    Get system-wide donation statistics
+ * @route   GET /api/donations/stats
+ * @access  Public
+ * @details Returns the aggregated total of all donations collected across the platform.
+ */
 const getStats = async (req, res) => {
     try {
         const totalDonations = await Donation.sum('amount') || 0;
@@ -121,7 +138,14 @@ const getStats = async (req, res) => {
     }
 };
 
-// @desc    Verify donation (ZEO)
+/**
+ * @desc    Verify and Process a Donation
+ * @route   PATCH /api/donations/:id/verify
+ * @access  Private (ZEO Only)
+ * @details ZEO verifies the receipt. Automatically aggregates funds for the associated 
+ *          WelfareRequest. If the request meets its goal, updates status to 'FULLY_FUNDED',
+ *          otherwise 'PARTIALLY_FUNDED'. Notifies the donor of their receipt status.
+ */
 const verifyDonation = async (req, res) => {
     const transaction = await sequelize.transaction();
     try {

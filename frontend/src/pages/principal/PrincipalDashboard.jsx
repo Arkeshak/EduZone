@@ -8,6 +8,12 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import client from '@/services/apiClient';
 import { useAuth } from '@/context/AuthContext';
 
+/**
+ * PrincipalDashboard Component
+ * @desc The central hub for School Principals.
+ *       Displays key school metrics including pending welfare approvals,
+ *       monthly report status, and recent activity within their specific school.
+ */
 const PrincipalDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState({

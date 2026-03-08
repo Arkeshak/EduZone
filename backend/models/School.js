@@ -1,6 +1,10 @@
 const { DataTypes } = require('sequelize');
 const db = require('../config/db');
 
+/**
+ * School Model
+ * Contains school details, including bank information for welfare transfers.
+ */
 const School = db.define('School', {
     id: {
         type: DataTypes.INTEGER,

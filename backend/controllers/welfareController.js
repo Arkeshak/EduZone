@@ -4,9 +4,13 @@ const path = require('path');
 
 
 
-// @desc    Create new welfare request
-// @route   POST /api/welfare
-// @access  Private (Teacher)
+/**
+ * @desc    Create a new welfare request (Teacher)
+ * @route   POST /api/welfare
+ * @access  Private (Teacher)
+ * @details Looks up teacher profile, finds or creates the student record within the school,
+ *          and initializes a new WelfareRequest with status 'SUBMITTED'. Uses DB transactions.
+ */
 const createRequest = async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
@@ -66,9 +70,14 @@ const createRequest = async (req, res) => {
     }
 };
 
-// @desc    Get requests
-// @route   GET /api/welfare
-// @access  Private
+/**
+ * @desc    Get welfare requests based on user role
+ * @route   GET /api/welfare
+ * @access  Private
+ * @details Dynamically scopes data: ZEO sees all (filterable), Principals see their school, 
+ *          Teachers see their own creations, Donors/Public see verified/published listings. 
+ *          Includes pagination logic.
+ */
 const getRequests = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10);
@@ -162,7 +171,13 @@ const getRequests = async (req, res) => {
     }
 };
 
-// @desc    Update welfare request status (Principal / ZEO)
+/**
+ * @desc    Update welfare request status (Approval Flow)
+ * @route   PATCH /api/welfare/:id/status
+ * @access  Private (Principal / ZEO)
+ * @details Handles the state machine for approvals (e.g., SUBMITTED -> PRINCIPAL_APPROVED -> ZEO_APPROVED -> PUBLISHED).
+ *          Generates official reference codes upon ZEO publishing. Audits decisions and spawns Notifications.
+ */
 const updateStatus = async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
@@ -248,7 +263,13 @@ const updateStatus = async (req, res) => {
     }
 };
 
-// @desc    Get Published Requests
+/**
+ * @desc    Get Published Requests
+ * @route   GET /api/welfare/published
+ * @access  Public
+ * @details Retrieves requests that are visible to donors (PUBLISHED, PARTIALLY_FUNDED, etc). 
+ *          Strips sensitive internal data from the response. Supports pagination.
+ */
 const getPublishedRequests = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10);
@@ -296,9 +317,96 @@ const getPublishedRequests = async (req, res) => {
     }
 };
 
+// @desc    Update welfare request details
+// @route   PUT /api/welfare/:id
+// @access  Private (Teacher)
+const updateRequest = async (req, res) => {
+    const transaction = await sequelize.transaction();
+    try {
+        const { description, priority, category, amountRequired, cost } = req.body;
+
+        const teacher = await Teacher.findOne({ where: { userId: req.user.id }, transaction });
+        if (!teacher) {
+            await transaction.rollback();
+            return res.status(404).json({ message: 'Teacher profile not found' });
+        }
+
+        const request = await WelfareRequest.findByPk(req.params.id, { transaction });
+
+        if (!request) {
+            await transaction.rollback();
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        if (request.teacherId !== teacher.id) {
+            await transaction.rollback();
+            return res.status(403).json({ message: 'Not authorized to edit this request' });
+        }
+
+        if (request.status !== 'SUBMITTED') {
+            await transaction.rollback();
+            return res.status(400).json({ message: 'Can only edit requests in SUBMITTED status' });
+        }
+
+        if (description) request.description = description;
+        if (priority) request.priority = priority.toUpperCase();
+        if (category) request.category = category;
+        if (amountRequired || cost) request.amountRequired = amountRequired || cost;
+
+        await request.save({ transaction });
+        await transaction.commit();
+
+        res.status(200).json({ message: 'Request updated successfully', request });
+    } catch (error) {
+        if (transaction) await transaction.rollback();
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Delete a welfare request
+// @route   DELETE /api/welfare/:id
+// @access  Private (Teacher)
+const deleteRequest = async (req, res) => {
+    const transaction = await sequelize.transaction();
+    try {
+        const teacher = await Teacher.findOne({ where: { userId: req.user.id }, transaction });
+        if (!teacher) {
+            await transaction.rollback();
+            return res.status(404).json({ message: 'Teacher profile not found' });
+        }
+
+        const request = await WelfareRequest.findByPk(req.params.id, { transaction });
+
+        if (!request) {
+            await transaction.rollback();
+            return res.status(404).json({ message: 'Request not found' });
+        }
+
+        if (request.teacherId !== teacher.id) {
+            await transaction.rollback();
+            return res.status(403).json({ message: 'Not authorized to delete this request' });
+        }
+
+        if (request.status !== 'SUBMITTED') {
+            await transaction.rollback();
+            return res.status(400).json({ message: 'Can only delete requests in SUBMITTED status' });
+        }
+
+        await request.destroy({ transaction });
+        await transaction.commit();
+
+        res.status(200).json({ message: 'Request deleted successfully' });
+    } catch (error) {
+        if (transaction) await transaction.rollback();
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     createRequest,
     getRequests,
     updateStatus,
-    getPublishedRequests
+    getPublishedRequests,
+    updateRequest,
+    deleteRequest
 };

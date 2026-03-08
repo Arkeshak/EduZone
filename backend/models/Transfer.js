@@ -1,6 +1,11 @@
 const { DataTypes } = require('sequelize');
 const db = require('../config/db');
 
+/**
+ * Transfer Model
+ * Represents the actual movement of funds from the centralized system account to a School's bank account.
+ * Links the accepted donation to the fulfilled welfare request.
+ */
 const Transfer = db.define('Transfer', {
     id: {
         type: DataTypes.INTEGER,

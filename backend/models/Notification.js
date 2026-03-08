@@ -1,6 +1,10 @@
 const { DataTypes } = require('sequelize');
 const db = require('../config/db');
 
+/**
+ * Notification Model
+ * Stores basic system notifications for users (e.g., status updates on requests, approvals).
+ */
 const Notification = db.define('Notification', {
     id: {
         type: DataTypes.INTEGER,

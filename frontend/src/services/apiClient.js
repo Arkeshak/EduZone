@@ -1,8 +1,15 @@
 ﻿import axios from 'axios';
 import { getToken, getRefreshToken, setToken, setRefreshToken, removeToken } from '../utils/tokenHelper';
 
+/**
+ * API Client (Axios Instance)
+ * @desc Baseline Axios configuration for communicating with the Node.js backend.
+ *       Includes a request interceptor to automatically attach JWT Bearer tokens,
+ *       and a response interceptor to handle 401 Unauthorized errors by automatically
+ *       attempting to refresh the token using the refresh token stored in cookies/storage.
+ */
 const client = axios.create({
-    baseURL: 'http://localhost:5000/api', // Point to Backend
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api', // Point to Backend or ENV
     headers: {
         'Content-Type': 'application/json',
     },
@@ -62,7 +69,11 @@ client.interceptors.response.use(
             const refreshToken = getRefreshToken();
             if (refreshToken) {
                 try {
-                    const { data } = await axios.post('http://localhost:5000/api/auth/refresh', {
+                    const refreshUrl = import.meta.env.VITE_API_URL
+                        ? `${import.meta.env.VITE_API_URL}/auth/refresh`
+                        : 'http://localhost:5000/api/auth/refresh';
+
+                    const { data } = await axios.post(refreshUrl, {
                         refreshToken
                     });
 

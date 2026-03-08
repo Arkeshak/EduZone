@@ -10,6 +10,12 @@ import eduBg from '../assets/education_hero.png';
 import donationBg from '../assets/donation_hero.png';
 import heroBg from '../assets/hero-bg.png';
 
+/**
+ * Login Component
+ * @desc Unified login page handling dynamic layouts based on the requested 'role' URL parameter.
+ *       Adapts styling, icons, and titles for Teachers, Principals, ZEOs, and Donors.
+ *       Authenticates via `authService` and stores JWT tokens in context on success.
+ */
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);

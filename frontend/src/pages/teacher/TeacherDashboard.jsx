@@ -6,6 +6,12 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import client from '@/services/apiClient';
 import { useAuth } from '@/context/AuthContext';
 
+/**
+ * TeacherDashboard Component
+ * @desc The main landing hub for authenticated Teachers.
+ *       Fetches and displays high-level statistics of welfare requests submitted by the teacher.
+ *       Provides quick links to core actions (Submit Request, Upload Resource).
+ */
 const TeacherDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState({

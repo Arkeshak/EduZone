@@ -45,7 +45,14 @@ const validatePassword = (password) => {
     return null;
 };
 
-// @desc    Register a Donor
+/**
+ * @desc    Register a new Donor
+ * @route   POST /api/auth/donor/register
+ * @access  Public
+ * @details Validates password strength, creates a User record with ROLE='DONOR', 
+ *          associates a Donor profile, generates a 6-digit verification code, 
+ *          and sends an activation email.
+ */
 const registerDonor = async (req, res) => {
     const { name, email, password, phone, address, organizationName } = req.body;
     const cleanEmail = email.trim().toLowerCase();
@@ -104,7 +111,14 @@ const registerDonor = async (req, res) => {
     }
 };
 
-// @desc    Admin Create Staff
+/**
+ * @desc    Admin/ZEO Create Staff (Teacher or Principal)
+ * @route   POST /api/auth/staff/register
+ * @access  Private (ZEO only)
+ * @details Creates a User record with no password, creates the associated role profile 
+ *          (Teacher or Principal), links to a School, and sends an email with a 
+ *          secure reset token link so the staff can set their own password.
+ */
 const adminCreateUser = async (req, res) => {
     const { name, email, role, schoolId, subjects } = req.body;
     const cleanEmail = email.trim().toLowerCase();
@@ -180,7 +194,13 @@ const adminCreateUser = async (req, res) => {
     }
 };
 
-// @desc    Activate Account & Set Password
+/**
+ * @desc    Activate Account & Set Initial Password
+ * @route   POST /api/auth/activate
+ * @access  Public (Requires valid activation token)
+ * @details Verifies the activation token (from email link), validates and hashes 
+ *          the new password, and marks the user as verified and active.
+ */
 const activateAccount = async (req, res) => {
     const { token, password } = req.body;
 
@@ -215,7 +235,14 @@ const activateAccount = async (req, res) => {
     }
 };
 
-// @desc    Login User
+/**
+ * @desc    Login User
+ * @route   POST /api/auth/login
+ * @access  Public
+ * @details Authenticates user credentials, validates email verification status, 
+ *          retrieves role-specific profile data (like school affiliation), 
+ *          and returns short-lived JWT accessToken alongside a 7-day refreshToken.
+ */
 const loginUser = async (req, res) => {
     let { email, password } = req.body;
     email = email.trim().toLowerCase();
@@ -452,7 +479,13 @@ const verifyEmail = async (req, res) => {
     }
 };
 
-// @desc    Refresh Token
+/**
+ * @desc    Refresh Access Token
+ * @route   POST /api/auth/refresh
+ * @access  Public (Requires valid refresh token in body)
+ * @details Validates the refresh token against the DB, rotates the token for security, 
+ *          re-loads user profile claims, and issues new access and refresh tokens.
+ */
 const refreshTokenEndpoint = async (req, res) => {
     const { refreshToken } = req.body;
     if (!refreshToken) return res.status(401).json({ message: 'Refresh Token required' });

@@ -1,5 +1,11 @@
 ﻿import client from './apiClient';
 
+/**
+ * Auth API Service
+ * @desc Encapsulates all backend HTTP calls related to User Authentication and Identity.
+ *       Includes login, registration, email verification, password reset flows, 
+ *       and user management endpoints accessible by ZEO/Admin.
+ */
 export const authApi = {
   login: async (credentials) => {
     const response = await client.post('/auth/login', credentials);

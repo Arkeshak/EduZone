@@ -1,8 +1,13 @@
 const { Transfer, WelfareRequest, School, WelfareApproval, Donation, sequelize } = require('../models');
 
-// @desc    Initiate Fund Transfer to School (ZEO)
-// @route   POST /api/transfers
-// @access  Private (ZEO)
+/**
+ * @desc    Initiate Fund Transfer to School
+ * @route   POST /api/transfers
+ * @access  Private (ZEO Only)
+ * @details Records the off-platform transfer of aggregated donations to a school's bank account.
+ *          Updates the associated WelfareRequest status to 'TRANSFERRED' and creates an audit trail (WelfareApproval).
+ *          Can accept file uploads for proof of transfer receipts.
+ */
 const initiateTransfer = async (req, res) => {
     const transaction = await sequelize.transaction();
     try {
@@ -57,9 +62,14 @@ const initiateTransfer = async (req, res) => {
     }
 };
 
-// @desc    Get Transfers
-// @route   GET /api/transfers
-// @access  Private (ZEO/Principal)
+/**
+ * @desc    Get Transfer History
+ * @route   GET /api/transfers
+ * @access  Private (ZEO / Principal)
+ * @details Retrieves past fund transfers. 
+ *          ZEO sees all transfers across the zone. Principals only see transfers made to their specific school.
+ *          Supports pagination.
+ */
 const getTransfers = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10);

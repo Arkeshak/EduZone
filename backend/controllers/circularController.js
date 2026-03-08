@@ -1,8 +1,12 @@
 const { Circular, CircularRecipient, User } = require('../models');
 
-// @desc    Publish Circular (ZEO Only)
-// @route   POST /api/circulars
-// @access  Private (ZEO)
+/**
+ * @desc    Publish a new Circular
+ * @route   POST /api/circulars
+ * @access  Private (ZEO Only)
+ * @details Allows the ZEO to broadcast official circulars to specific roles (e.g., Principals, Teachers).
+ *          Creates the Circular record and associated CircularRecipient records.
+ */
 const publishCircular = async (req, res) => {
     try {
         const { title, message, status, recipients } = req.body; // recipients: ['PRINCIPAL', 'TEACHER']
@@ -35,9 +39,13 @@ const publishCircular = async (req, res) => {
     }
 };
 
-// @desc    Get Circulars
-// @route   GET /api/circulars
-// @access  Private
+/**
+ * @desc    Get Circulars for User
+ * @route   GET /api/circulars
+ * @access  Private
+ * @details Retrieves circulars based on the logged-in user's role. 
+ *          ZEO sees all circulars, while Teachers and Principals only see published circulars targeted to their role.
+ */
 const getCirculars = async (req, res) => {
     try {
         const { role } = req.user;

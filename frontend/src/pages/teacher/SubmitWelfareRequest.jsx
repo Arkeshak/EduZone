@@ -8,6 +8,12 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import FileUploader from '@/components/FileUploader';
 import client from '@/services/apiClient';
 
+/**
+ * SubmitWelfareRequest Component
+ * @desc Form interface for Teachers to create new welfare requests on behalf of students.
+ *       Captures student details, financial need, and optional supporting documents.
+ *       Posts data to `/api/welfare` and redirects to the tracker view on success.
+ */
 const SubmitWelfareRequest = () => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({

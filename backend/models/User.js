@@ -1,6 +1,11 @@
 const { DataTypes } = require('sequelize');
 const db = require('../config/db');
 
+/**
+ * User Model
+ * Defines the core user schema for authentication and role-based access.
+ * Represents all actors in the app (ZEO, Principal, Teacher, Donor).
+ */
 const User = db.define('User', {
     id: {
         type: DataTypes.INTEGER,

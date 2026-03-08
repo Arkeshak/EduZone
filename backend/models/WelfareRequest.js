@@ -1,6 +1,11 @@
 const { DataTypes } = require('sequelize');
 const db = require('../config/db');
 
+/**
+ * WelfareRequest Model
+ * The core entity representing a student's need for financial assistance.
+ * Tracks the lifecycle from SUBMITTED by Teacher to TRANSFERRED (funded).
+ */
 const WelfareRequest = db.define('WelfareRequest', {
     id: {
         type: DataTypes.INTEGER,

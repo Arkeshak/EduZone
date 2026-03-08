@@ -6,6 +6,13 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import LoadingSpinner from '@/components/LoadingSpinner';
 import client from '@/services/apiClient';
 
+/**
+ * ZEODashboard Component
+ * @desc The master administration dashboard for Zonal Education Officers.
+ *       Provides a high-level overview of the entire educational zone, including aggregated 
+ *       statistics for schools, students, system-wide pending approvals, and total donation funds.
+ *       Integrates Recharts for visual data representation.
+ */
 const ZEODashboard = () => {
   const [loading, setLoading] = useState(true);
 
