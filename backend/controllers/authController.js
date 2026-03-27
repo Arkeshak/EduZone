@@ -30,6 +30,7 @@ const generateRefreshToken = (user) => {
 
 // Password Validation Helper
 const validatePassword = (password) => {
+    if (!password) return "Password is required.";
     const minLength = 8;
     const hasUpperCase = /[A-Z]/.test(password);
     const hasLowerCase = /[a-z]/.test(password);

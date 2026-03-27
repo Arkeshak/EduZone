@@ -69,9 +69,11 @@ app.get("/", (req, res) => {
 });
 
 // Database Connection
-sequelize.authenticate()
-    .then(() => console.log('Database connected successfully...'))
-    .catch(err => console.log('Database Connection Error: ' + err));
+if (process.env.NODE_ENV !== 'test') {
+    sequelize.authenticate()
+        .then(() => console.log('Database connected successfully...'))
+        .catch(err => console.log('Database Connection Error: ' + err));
+}
 
 // Error handler
 app.use((err, req, res, next) => {
@@ -113,4 +115,8 @@ process.on('uncaughtException', (err) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+module.exports = app;
