@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -75,7 +75,7 @@ const BrowseWelfareRequests = () => {
                   <p className="text-gray-700 text-sm mb-4 line-clamp-3">{req.description}</p>
                   <div className="flex items-center text-gray-500 text-sm mb-4">
                     <School className="w-4 h-4 mr-2" />
-                    {req.schoolData?.name || 'Unknown School'}
+                    {req.schoolName || 'Unknown School'}
                   </div>
                   <div className="flex gap-2">
                     <Badge variant="outline" className="text-xs">{req.priority || 'High'}</Badge>

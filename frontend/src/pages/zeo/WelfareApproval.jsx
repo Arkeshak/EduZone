@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,7 +67,7 @@ const WelfareApproval = () => {
     if (!reason) return;
 
     try {
-      await client.patch(`/welfare/${id}/status`, { status: 'REJECTED', reason });
+      await client.patch(`/welfare/${id}/status`, { status: 'REJECTED', remarks: reason });
       setRequests(requests.filter(r => r.id !== id));
       toast.success(`Request rejected.`);
     } catch (error) {

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -18,8 +18,8 @@ const ReviewWelfareRequests = () => {
     const fetchRequests = async () => {
       try {
         const { data } = await client.get('/welfare');
-        // Backend filters by role automatically, but we ensure frontend state matches
-        setRequests(data);
+        // Principals should only review requests that are in the initial SUBMITTED state
+        setRequests(data.filter(req => req.status === 'SUBMITTED'));
       } catch (error) {
         toast.error("Failed to load requests");
       } finally {
@@ -31,8 +31,8 @@ const ReviewWelfareRequests = () => {
 
   const handleAction = async (id, action) => {
     try {
-      const status = action === 'approve' ? 'Approved by Principal' : 'Rejected';
-      await client.patch(`/welfare/${id}/status`, { status });
+      const status = action === 'approve' ? 'PRINCIPAL_APPROVED' : 'REJECTED';
+      await client.patch(`/welfare/${id}/status`, { status, remarks: 'Action from Principal Portal' });
 
       setRequests(requests.filter(req => req.id !== id));
 

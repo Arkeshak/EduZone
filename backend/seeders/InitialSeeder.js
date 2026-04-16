@@ -3,7 +3,7 @@ const {
     WelfareRequest, Donation, Transfer, Notification, MonthlyReport,
     Circular, Resource, PasswordReset, WelfareRequestDocument, WelfareApproval,
     CircularRecipient, CircularAttachment, TeacherSubject
-} = require('./models');
+} = require('../models');
 
 const bcrypt = require('bcryptjs');
 
