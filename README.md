@@ -1,90 +1,122 @@
-<div align="center">
+# EduZone - Educational Welfare & Management Platform
 
-# 🎓 EduZone
+EduZone is a robust, multi-role digital platform designed to streamline welfare requests, donation transparency, circular distribution, and educational resource management within a school zone. It connects educators, administrations, and generous donors to ensure students receive the financial and material support they need effectively and transparently.
 
-**A Comprehensive Digital Ecosystem Reimagining Education Management & Resource Allocation**
+## 🌟 Key Features
 
-[![React](https://img.shields.io/badge/Frontend-React.js-blue?style=for-the-badge&logo=react)](https://reactjs.org/)
-[![Node.js](https://img.shields.io/badge/Backend-Node.js-green?style=for-the-badge&logo=node.js)](https://nodejs.org/)
-[![Express.js](https://img.shields.io/badge/Framework-Express-lightgray?style=for-the-badge&logo=express)](https://expressjs.com/)
-[![SQLite](https://img.shields.io/badge/Database-SQLite-003B57?style=for-the-badge&logo=sqlite)](https://www.sqlite.org/)
-
-A unified platform connecting Schools, Principals, Teachers, Zonal Education Officers (ZEO), and Donors to streamline administrative operations, foster inter-school welfare, and transparently route community donations.
-
-</div>
+*   **Role-Based Dashboards:** Distinct, secure interfaces and capabilities for Zonal Educational Officers (ZEO), Principals, Teachers, and Donors.
+*   **Welfare Request Workflow:** A structured pipeline allowing Teachers to submit student welfare needs (like supplies, fees, transport), which are vetted by Principals, approved by the ZEO, and published transparently for funding.
+*   **Transparent Donation Engine:** Secure donor portal for pledging funds to specific requests or general pools. Enforces strict verification workflows using uploaded bank receipts before funds are released to school bank accounts.
+*   **Circulars & Communications:** Centralized announcement distribution system for ZEOs to dispatch official circulars with attachments instantly to school Principals and Teachers.
+*   **Resource Hub:** A collaborative space for Teachers to upload, categorize, and discover educational materials (PDFs, study guides) across different subjects and grade levels.
+*   **Deep Security:** Implements JWT-based authentication with auto-refresh mechanisms, role authorization guards, input sanitization, and strict password constraints to keep student and donor data secure.
 
 ---
 
-## ✨ Key Features
+## 🏗️ Technology Stack
 
-- **🛡️ Multi-Tier Authentication:** Securely engineered role-based access for Principals, Teachers, ZEOs, and public Donors.
-- **🏫 School & Principal Dashboards:** Automate monthly reporting, visualize student-staff attendance metrics, and seamlessly issue regional circulars.
-- **❤️ Transparent Donation Network:** Direct connections between benefactors and institutional welfare requests. Donors can seamlessly select programs and visualize their impact.
-- **🔀 Teacher Transfers Hub:** Built-in capabilities dedicated to managing, reviewing, and approving regional teacher transfer applications directly through ZEO pathways.
-- **📚 Open Resource Repository:** A public reservoir where schools share digital resources, curriculums, and documentation with the broader community.
+EduZone is built using a modern JavaScript/TypeScript stack, optimized for performance, scalability, and maintainability.
 
----
+### Frontend
+*   **Core:** React.js powered by Vite for lightning-fast compilation.
+*   **Routing:** React Router v6 for nested, role-protected layouts.
+*   **UI/Styling:** Tailwind CSS integrated with `shadcn/ui` components (Radix UI) for accessible, responsive, and beautiful interfaces.
+*   **State & Fetching:** Axios with custom interceptors for seamless JWT token management and centralized state tracking.
+*   **Icons & Notifications:** Lucide React (icons) and Sonner (toast notifications).
 
-## 💻 Tech Stack
-
-### Frontend (User Interface)
-- **Vite + React.js**: Lightning-fast, component-driven UI.
-- **Tailwind CSS**: Sleek, modern, and completely responsive styling.
-- **Context API & Hooks**: Fluid state management across deeply nested role-dashboards.
-
-### Backend (Server & Database)
-- **Node.js & Express.js**: Resilient, scalable, and non-blocking REST API architecture.
-- **Sequelize ORM**: Graceful, robust data mapping and relational constraints.
-- **SQLite / PostgreSQL Ready**: Engineered safely mapped environments for rapid local tests and production transitions.
-- **Jest & Supertest**: Full API protection backed by a 100% automated CI-ready testing suite.
+### Backend
+*   **Core:** Node.js with Express framework.
+*   **Database:** Relational database managed through **Sequelize ORM**, allowing for complex associations between Users, Schools, Requests, and Donations.
+*   **Security layer:** Helmet (HTTP headers), bcryptjs (password hashing), jsonwebtoken (auth), `xss` (cross-site scripting prevention), and express-rate-limit.
+*   **File Uploads:** Multer for handling multipart/form-data (resource files, donation receipts, circular attachments).
 
 ---
 
-## 🛠️ Installation & Setup
+## 👥 User Roles & Permissions
 
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/your-username/eduzone.git
-   cd eduzone
-   ```
-
-2. **Backend Setup**
-   ```bash
-   cd backend
-   npm install
-   
-   # Setup environment variables using .env.example
-   cp .env.example .env
-   
-   npm start
-   # API will launch on http://localhost:5000
-   ```
-
-3. **Frontend Setup**
-   ```bash
-   cd frontend
-   npm install
-   
-   # Setup Vite environment
-   npm run dev
-   # App will launch on http://localhost:5173
-   ```
+1.  **ZEO Admin (Zonal Education Officer):** The top-level administrator. Can manage user accounts, publish official circulars, approve verified welfare requests for publication, and verify donor payment receipts for fund disbursement.
+2.  **Principal:** Approves welfare requests originating from teachers in their specific school. Submits monthly school performance reports to the ZEO.
+3.  **Teacher:** Identifies student needs and submits welfare requests with estimated costs. Can upload and download shared educational resources and view received circulars.
+4.  **Donor:** Browses verified, published welfare requests in need of funding. Submits donations, uploads payment proofs, and tracks the real-time funding status and ultimate impact of their transactions.
 
 ---
 
-## 🧪 Testing
+## 🚀 Getting Started
 
-The backend is armored with a robust, automated test environment explicitly mocked for rapid speed and efficiency.
+Follow these steps to run the EduZone platform locally for development or demonstration.
+
+### Prerequisites
+*   [Node.js](https://nodejs.org/en/) (v16.0 or higher recommended)
+*   A running SQL database instance (MySQL, PostgreSQL, or SQLite via configuration)
+
+### 1. Backend Setup
+
+Open a terminal and navigate to the backend directory:
 ```bash
 cd backend
-npm test
+npm install
 ```
-*Current Coverage includes fully authenticated workflows surrounding Welfare, Resources, Schools, Reports, and Donation suites.*
+
+Create a `.env` file in the `backend/` directory using the provided example:
+```bash
+cp .env.example .env
+# Edit .env with your specific database credentials and JWT secrets
+```
+
+Start the backend development server:
+```bash
+npm run dev
+```
+*The server typically runs on `http://localhost:5000`.*
+
+### 2. Frontend Setup
+
+Open a new terminal and navigate to the frontend directory:
+```bash
+cd frontend
+npm install
+```
+
+Create a `.env` file in the `frontend/` directory (if required) to set the API URL:
+```env
+VITE_API_URL=http://localhost:5000/api
+```
+
+Start the frontend development server:
+```bash
+npm run dev
+```
+*The web interface will typically run on `http://localhost:5173`.*
 
 ---
 
-<div align="center">
-<i>Empowering communities. Modernizing schools. Revolutionizing education management.</i>
-<br><br>
-<b>Made with ❤️ for the Future of Education</b>
-</div>
+## 📂 System Architecture Overview
+
+```text
+EduZone/
+│
+├── backend/                  # Express API Server
+│   ├── config/               # DB & server constants
+│   ├── controllers/          # Business logic (welfare, donations, etc.)
+│   ├── middleware/           # Auth walls, validation, error handling
+│   ├── models/               # Sequelize DB schemas & relationships
+│   ├── routes/               # API endpoint definitions
+│   ├── seeders/              # Database population scripts
+│   └── uploads/              # Local storage for receipts/resources
+│
+└── frontend/                 # React Application
+    ├── src/
+    │   ├── components/       # Reusable UI elements (Cards, Dialogs, Inputs)
+    │   ├── context/          # React Context (AuthContext)
+    │   ├── layouts/          # Dashboard framing & sidebars
+    │   ├── pages/            # Role-specific dashboard views
+    │   ├── services/         # Axios API clients
+    │   └── utils/            # JWT helpers and formatters
+    └── public/               # Static assets & icons
+```
+
+## 🔐 Security & Best Practices
+
+*   **Token Refreshing:** The system does not store sensitive sessions indefinitely. It uses short-lived Access Tokens complemented by automatically renewing Refresh Tokens to maximize workflow security.
+*   **Transaction Safety:** Complex backend operations (like verified donations creating school transfer records while updating request limits) are wrapped in **SQL Transactions** to guarantee data integrity across multiple tables.
+*   **Data Validation:** All incoming data is rigorously sanitized against script injections and validated for types and size constraints before database insertion.
