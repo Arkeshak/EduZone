@@ -1,4 +1,20 @@
-﻿import { useState, useEffect } from 'react';
+/**
+ * PRINCIPAL DASHBOARD PAGE
+ * 
+ * File Purpose: Main landing page for school principals
+ * Used for: Quick overview of pending approvals, school metrics, recent activity
+ * 
+ * Features:
+ * - Statistics: Pending welfare approvals, monthly report status, total students
+ * - Recent activity showing new welfare requests requiring approval
+ * - Quick links to: Review requests, Received funds, Submit report, View circulars
+ * - School-scoped data (only their school's data)
+ * 
+ * Data: Fetches welfare requests for school and generates stats
+ * Security: Only shows data relevant to principal's school
+ */
+
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { FileText, CheckCircle, XCircle, AlertCircle, BarChart3, ArrowUpRight, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -31,11 +47,14 @@ const PrincipalDashboard = () => {
   const fetchStats = async () => {
     try {
       // Fetch Real Welfare Requests count
-      const { data: requests } = await client.get('/welfare');
-      const pendingCount = requests.filter(r => r.status === 'Pending').length;
+      const { data } = await client.get('/welfare');
+      
+      // Handle paginated response structure
+      const requests = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+      
+      const pendingCount = requests.filter(r => r.status === 'SUBMITTED' || r.status === 'Pending').length;
 
       // Fetch School Info (if we had an endpoint for current school stats, e.g. /schools/me)
-      // For now we persist student count in localStorage effectively acting as DB for this specific field
       const savedStats = JSON.parse(localStorage.getItem('mock_school_stats') || '{}');
 
       setStats({
@@ -52,6 +71,7 @@ const PrincipalDashboard = () => {
 
     } catch (error) {
       console.error("Failed to load principal stats", error);
+      toast.error("Failed to load dashboard statistics");
     } finally {
       setLoading(false);
     }

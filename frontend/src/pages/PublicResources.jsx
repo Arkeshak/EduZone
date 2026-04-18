@@ -1,4 +1,21 @@
-﻿import { useState, useEffect } from 'react';
+/**
+ * PUBLIC RESOURCES PAGE
+ * 
+ * File Purpose: Display educational resources available to all users
+ * Used for: Browsing and downloading teaching materials, study guides
+ * 
+ * Features:
+ * - Search by title
+ * - Filter by subject and grade
+ * - Display resource cards (title, teacher, grade, subject)
+ * - Download/view resource file
+ * - Pagination for large lists
+ * 
+ * Access: Public (no login required)
+ * Data: Resources uploaded by teachers marked as PUBLISHED
+ */
+
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { SUBJECTS, GRADES } from '@/utils/subjects';
 import { Button } from '@/components/ui/button';
@@ -10,15 +27,62 @@ import client from '@/services/apiClient';
 import heroBg from '../assets/education_hero.png';
 
 const PublicResources = () => {
+    {/* 
+      STATE MANAGEMENT
+      
+      Purpose: Manage resources, loading, search, and filters
+      
+      State Variables:
+      - resources: Array of resource objects fetched from backend
+      - loading: Boolean indicating if resources are being fetched
+      - searchTerm: User's search query text
+      - filters: Object with grade and subject filters
+    */}
     const [resources, setResources] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filters, setFilters] = useState({ grade: 'All', subject: 'All' });
 
+    {/* 
+      EFFECT: Fetch Resources When Filters Change
+      
+      Purpose: Refetch resources whenever filter changes
+      Triggers: When component mounts or filters updated
+      Flow:
+      1. useEffect detects filters changed
+      2. Calls fetchResources()
+      3. Passes current filters to API
+      4. Updates resources state
+      5. Sets loading to false
+    */}
     useEffect(() => {
         fetchResources();
     }, [filters]);
 
+    {/* 
+      FETCH RESOURCES FUNCTION
+      
+      Purpose: Retrieve resources from backend API
+      Endpoint: GET /resources/public?grade=&subject=&search=
+      
+      Process:
+      1. Set loading to true
+      2. Build query parameters from filters and search
+      3. Call API with parameters
+      4. Update resources state with response
+      5. Handle errors in console
+      6. Set loading to false
+      
+      Query Parameters:
+      - grade: Specific grade level (or 'All')
+      - subject: Subject name (or 'All')
+      - search: Search term from search box
+      
+      Error Handling:
+      - Logs errors to console
+      - Doesn't show error toast (graceful degradation)
+      - Sets loading to false to stop spinner
+    */}
     const fetchResources = async () => {
         setLoading(true);
         try {
@@ -36,6 +100,18 @@ const PublicResources = () => {
         }
     };
 
+    {/* 
+      HANDLE SEARCH FUNCTION
+      
+      Purpose: Process search form submission
+      Triggered: When user clicks search button or presses Enter
+      
+      Flow:
+      1. Prevent default form submission
+      2. Call fetchResources()
+      3. API request sent with searchTerm parameter
+      4. Results updated in UI
+    */}
     const handleSearch = (e) => {
         e.preventDefault();
         fetchResources();
@@ -44,13 +120,32 @@ const PublicResources = () => {
     return (
         <div className="min-h-screen bg-slate-50 font-sans selection:bg-indigo-500 selection:text-white">
 
-            {/* Navigation (Simplified) */}
+            {/* NAVIGATION BAR - Fixed at top */}
             <nav className="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
                 <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
+                    {/* 
+                      BACK TO HOME LINK
+                      Purpose: Navigate back to landing page
+                      Icon: Left arrow
+                      Text: "Back to Home"
+                      Color: Gray, blue on hover
+                      Location: Top left
+                      Used for: Quick exit from resources page
+                    */}
                     <Link to="/" className="flex items-center space-x-2 text-slate-600 hover:text-blue-600 transition-colors">
                         <ArrowLeft className="w-5 h-5" />
                         <span className="font-semibold">Back to Home</span>
                     </Link>
+
+                    {/* 
+                      BRAND/LOGO
+                      Purpose: Display EduZone Library branding
+                      Elements:
+                      - Graduation cap icon in blue circle
+                      - "EduZone Library" text
+                      Location: Center/right of nav
+                      Used for: Branding and navigation context
+                    */}
                     <div className="flex items-center space-x-3">
                         <div className="p-1.5 bg-blue-600 rounded-lg">
                             <GraduationCap className="w-5 h-5 text-white" />
@@ -60,33 +155,78 @@ const PublicResources = () => {
                 </div>
             </nav>
 
-            {/* Hero Header */}
+            {/* HERO SECTION - Page header with background */}
             <div className="relative pt-32 pb-20 bg-slate-900 overflow-hidden">
+                {/* Background image with gradient overlay */}
                 <div className="absolute inset-0 z-0">
                     <img src={heroBg} className="w-full h-full object-cover opacity-20 blur-sm" alt="Library Background" />
                     <div className="absolute inset-0 bg-gradient-to-b from-slate-900/80 to-slate-50"></div>
                 </div>
 
                 <div className="relative z-10 max-w-4xl mx-auto px-6 text-center space-y-6">
+                    {/* 
+                      PAGE TYPE BADGE
+                      Purpose: Identify this as resource hub
+                      Text: "Digital Resource Hub"
+                      Icon: Book open icon
+                      Background: Semi-transparent blue
+                      Location: Top of hero
+                      Used for: Quick identification of page purpose
+                    */}
                     <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-semibold uppercase tracking-widest border border-blue-500/30">
                         <BookOpen className="w-3 h-3 mr-2" /> Digital Resource Hub
                     </div>
+
+                    {/* 
+                      MAIN HEADLINE
+                      Purpose: Attract attention and explain value
+                      Text: "Unlock Knowledge, Anytime, Anywhere."
+                      Parts:
+                      - Main text: "Unlock Knowledge,"
+                      - Gradient part: "Anytime, Anywhere." (blue to purple)
+                      Size: Large responsive (4xl mobile, 5xl tablet)
+                      Used for: Primary hook and value proposition
+                    */}
                     <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
                         Unlock Knowledge, <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">Anytime, Anywhere.</span>
                     </h1>
+
+                    {/* 
+                      SUBHEADING
+                      Purpose: Explain resource collection
+                      Text: Describes curated materials from expert teachers
+                      Color: Medium gray
+                      Max width: Limited to 2xl
+                      Used for: Secondary explanation and context
+                    */}
                     <p className="text-slate-400 text-lg max-w-2xl mx-auto">
                         Access a curated collection of study materials, past papers, and notes uploaded by expert teachers from the Hatton Zone.
                     </p>
 
-                    {/* Glossy Search Bar */}
+                    {/* SEARCH FORM - Glossy search bar */}
                     <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto mt-8">
                         <div className="relative group">
+                            {/* Blurred glow effect behind search */}
                             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
+
+                            {/* Search input container */}
                             <div className="relative flex bg-white rounded-2xl shadow-xl overflow-hidden">
+                                {/* Search icon */}
                                 <div className="pl-4 flex items-center pointer-events-none">
                                     <Search className="w-5 h-5 text-gray-400" />
                                 </div>
+
+                                {/* 
+                                  SEARCH INPUT FIELD
+                                  Purpose: Accept search query from user
+                                  Placeholder: Instructional text
+                                  Type: Text input
+                                  Height: Large (14 units, 56px)
+                                  Size: Large font (text-lg)
+                                  Action: On change, updates searchTerm state
+                                  Used for: Searching resources by title/keywords
+                                */}
                                 <Input
                                     type="text"
                                     placeholder="Search resources by title or keywords..."
@@ -94,6 +234,18 @@ const PublicResources = () => {
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
+
+                                {/* 
+                                  SEARCH BUTTON
+                                  Purpose: Submit search query
+                                  Color: Dark gray (slate-900)
+                                  Size: Large (h-14, px-8)
+                                  Hover: Lighter gray
+                                  Text: "Search"
+                                  Type: Submit button
+                                  Action: Calls handleSearch() on click
+                                  Used for: Trigger resource search
+                                */}
                                 <Button type="submit" className="h-14 px-8 rounded-none bg-slate-900 hover:bg-slate-800 text-white font-medium">
                                     Search
                                 </Button>
@@ -103,10 +255,19 @@ const PublicResources = () => {
                 </div>
             </div>
 
-            {/* Filters & Results */}
+            {/* FILTERS & RESULTS SECTION */}
             <div className="max-w-7xl mx-auto px-6 pb-24 -mt-10 relative z-20">
 
-                {/* Filter Pills */}
+                {/* 
+                  FILTER CONTROLS
+                  Purpose: Allow users to filter resources
+                  Filters Available:
+                  - Grade: Select specific grade level
+                  - Subject: Select specific subject
+                  Both have "All" option to show all results
+                  Layout: Horizontal flex with gap
+                  Used for: Narrow down resources by criteria
+                */}
                 <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
                     <FilterSelect
                         label="Grade"
@@ -122,22 +283,42 @@ const PublicResources = () => {
                     />
                 </div>
 
-                {/* Results Grid */}
+                {/* 
+                  RESULTS GRID
+                  Purpose: Display search and filtered results
+                  States:
+                  - Loading: Show skeleton cards
+                  - Has results: Show resource cards in grid
+                  - No results: Show empty state message
+                  Layout: Responsive grid (1 col mobile, 2 col tablet, 3 col desktop)
+                  Used for: Main content area showing resources
+                */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {loading ? (
+                        /* Skeleton cards while loading */
                         [1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)
                     ) : resources.length > 0 ? (
+                        /* Resource cards when data loaded */
                         resources.map((resource) => (
                             <ResourceCard key={resource.id} resource={resource} />
                         ))
                     ) : (
-                        <div className="col-span-full text-center py-20">
-                            <div className="bg-white inline-flex p-4 rounded-full shadow-sm mb-4">
-                                <Filter className="w-8 h-8 text-gray-300" />
-                            </div>
-                            <h3 className="text-xl font-semibold text-gray-900">No resources found</h3>
-                            <p className="text-gray-500 mt-2">Try adjusting your search or filters to find what you need.</p>
+                    /* 
+                          EMPTY STATE
+                          Purpose: Show when no resources match criteria
+                          Elements:
+                          - Filter icon in circle
+                          - "No resources found" heading
+                          - Suggestion to adjust filters
+                          Used for: Helpful message when search returns nothing
+                        */
+                    <div className="col-span-full text-center py-20">
+                        <div className="bg-white inline-flex p-4 rounded-full shadow-sm mb-4">
+                            <Filter className="w-8 h-8 text-gray-300" />
                         </div>
+                        <h3 className="text-xl font-semibold text-gray-900">No resources found</h3>
+                        <p className="text-gray-500 mt-2">Try adjusting your search or filters to find what you need.</p>
+                    </div>
                     )}
                 </div>
 

@@ -30,3 +30,14 @@ yarn-error.log*
 # Brain
 .agent/
 .gemini/
+
+# Scratch and Temporary Scripts
+scratch/
+.history/
+backend/check_schools.js
+backend/verify_fix.js
+backend/verify_logic.js
+backend/verify_requests.js
+verify_fix.js
+e2e_test.js
+frontend/DOCUMENTATION.md

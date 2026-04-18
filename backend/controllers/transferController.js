@@ -1,3 +1,21 @@
+/**
+ * TRANSFER CONTROLLER
+ * 
+ * File Purpose: Manages fund transfers from donations to school bank accounts
+ * Used for: Recording and tracking money transfers, maintaining payment audit trail
+ * 
+ * Key functions:
+ * - initiateTransfer() - ZEO records fund transfer to school
+ * - getTransfers() - View transfer history (paginated)
+ * - getTransferById() - Get specific transfer details
+ * - updateTransferStatus() - Update transfer status
+ * - downloadProof() - Download transfer receipt/proof
+ * 
+ * Workflow: Donation verified → ZEO approves transfer → Bank transfer executed → Proof uploaded
+ * Security: Uses database transactions to ensure consistency, only ZEO can initiate
+ * Audit: Creates approval record for tracking who transferred and when
+ */
+
 const { Transfer, WelfareRequest, School, WelfareApproval, Donation, sequelize } = require('../models');
 
 /**
@@ -79,7 +97,7 @@ const getTransfers = async (req, res) => {
         let queryOptions = {
             limit,
             offset,
-            order: [['createdAt', 'DESC']]
+            order: [['transferredAt', 'DESC']]
         };
 
         let result;

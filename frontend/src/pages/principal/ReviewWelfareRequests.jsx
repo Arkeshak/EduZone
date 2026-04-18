@@ -19,7 +19,8 @@ const ReviewWelfareRequests = () => {
       try {
         const { data } = await client.get('/welfare');
         // Principals should only review requests that are in the initial SUBMITTED state
-        setRequests(data.filter(req => req.status === 'SUBMITTED'));
+        const reqsArray = data.data || data;
+        setRequests(reqsArray.filter(req => req.status === 'SUBMITTED'));
       } catch (error) {
         toast.error("Failed to load requests");
       } finally {
@@ -30,9 +31,16 @@ const ReviewWelfareRequests = () => {
   }, []);
 
   const handleAction = async (id, action) => {
+    let remarks = 'Action from Principal Portal';
+    
+    if (action === 'reject') {
+      remarks = prompt("Please enter the reason for rejection (this will be visible to the teacher):");
+      if (!remarks) return; // Cancel rejection if no reason provided
+    }
+
     try {
       const status = action === 'approve' ? 'PRINCIPAL_APPROVED' : 'REJECTED';
-      await client.patch(`/welfare/${id}/status`, { status, remarks: 'Action from Principal Portal' });
+      await client.patch(`/welfare/${id}/status`, { status, remarks });
 
       setRequests(requests.filter(req => req.id !== id));
 
@@ -42,7 +50,8 @@ const ReviewWelfareRequests = () => {
         toast.error(`Request rejected.`);
       }
     } catch (error) {
-      toast.error("Failed to update request status");
+      console.error("Principal action error:", error.response?.data || error);
+      toast.error(error.response?.data?.message || "Failed to update request status. Check console.");
     }
   };
 

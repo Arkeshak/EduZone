@@ -1,4 +1,21 @@
-﻿import { useState } from 'react';
+﻿/**
+ * DONOR REGISTRATION PAGE  
+ * 
+ * File Purpose: Allow donors to create new accounts
+ * Used for: Donor signup with email verification
+ * 
+ * Features:
+ * - Full name, email, password form
+ * - Optional organization name and phone
+ * - Password strength validation
+ * - Email verification step
+ * - Loading/error states
+ * - Account activation after verification
+ * 
+ * Flow: Fill form → Submit → Receive verification email → Enter code → Account activated → Redirect to login
+ */
+
+import { useState } from 'react';
 import { validatePassword } from '@/utils/passwordValidation';
 import { useNavigate, Link } from 'react-router-dom';
 import { GraduationCap, User, Mail, Lock, Phone, MapPin, AlertCircle, CheckCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
@@ -180,6 +197,14 @@ const DonorRegistration = () => {
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300 ml-1">Full Name</label>
+                {/* 
+                  FULL NAME INPUT FIELD
+                  Purpose: Collect donor's full name
+                  Icon: User icon inside input on left
+                  Validation: Required field
+                  Action: On change, updates formData.name state
+                  Used for: Identifying donor for records
+                */}
                 <div className="relative group">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                   <input
@@ -195,6 +220,14 @@ const DonorRegistration = () => {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
+                {/* 
+                  EMAIL INPUT FIELD
+                  Purpose: Collect donor's email address (will be verified)
+                  Icon: Mail icon inside input on left
+                  Validation: Required field, must be valid email format
+                  Action: On change, updates formData.email state
+                  Used for: Login credentials and verification code delivery
+                */}
                 <div className="relative group">
                   <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                   <input
@@ -212,6 +245,17 @@ const DonorRegistration = () => {
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300 ml-1">Password</label>
+                {/* 
+                  PASSWORD INPUT FIELD
+                  Purpose: Collect strong password for account
+                  Icon: Lock icon inside input on left
+                  Visibility: Hidden by default (shows as dots)
+                  Toggle: Eye icon on right to show/hide password
+                  Validation: Required field, must be strong password
+                  Requirements: Minimum 8 chars, uppercase, lowercase, number, special char
+                  Action: On change, updates formData.password state
+                  Used for: Account security
+                */}
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                   <input
@@ -222,6 +266,14 @@ const DonorRegistration = () => {
                     className="w-full pl-12 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
                     placeholder="enter your password...."
                   />
+                  {/* 
+                    PASSWORD VISIBILITY TOGGLE (Password Field)
+                    Purpose: Show/hide password text
+                    Icon: Eye icon (closed when hidden, open when visible)
+                    Action: Click to toggle visibility
+                    Location: Right side inside password field
+                    Used for: Verify password was typed correctly
+                  */}
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
@@ -234,6 +286,16 @@ const DonorRegistration = () => {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300 ml-1">Confirm Password</label>
+                {/* 
+                  CONFIRM PASSWORD INPUT FIELD
+                  Purpose: Verify password was typed correctly (must match Password field)
+                  Icon: Lock icon inside input on left
+                  Visibility: Hidden by default (shows as dots)
+                  Toggle: Eye icon on right to show/hide
+                  Validation: Required field, must match password field
+                  Action: On change, updates formData.confirmPassword state
+                  Used for: Prevent typos, ensure user knows their password
+                */}
                 <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                   <input
@@ -244,6 +306,14 @@ const DonorRegistration = () => {
                     className="w-full pl-12 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
                     placeholder="enter your confirm password...."
                   />
+                  {/* 
+                    CONFIRM PASSWORD VISIBILITY TOGGLE
+                    Purpose: Show/hide confirm password text
+                    Icon: Eye icon (closed when hidden, open when visible)
+                    Action: Click to toggle visibility
+                    Location: Right side inside field
+                    Used for: Check both passwords match
+                  */}
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -257,6 +327,15 @@ const DonorRegistration = () => {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300 ml-1">Phone Number</label>
+              {/* 
+                PHONE NUMBER INPUT FIELD
+                Purpose: Collect donor's contact phone number
+                Icon: Phone icon inside input on left
+                Validation: Required field
+                Format: Tel input type (accepts phone numbers)
+                Action: On change, updates formData.phone state
+                Used for: Contact information and verification
+              */}
               <div className="relative group">
                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                 <input
@@ -272,6 +351,16 @@ const DonorRegistration = () => {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300 ml-1">Address</label>
+              {/* 
+                ADDRESS TEXTAREA FIELD
+                Purpose: Collect donor's physical address
+                Icon: Location/map pin icon at top left
+                Validation: Required field
+                Type: Textarea (multi-line text)
+                Height: Minimum 100px (about 4 lines)
+                Action: On change, updates formData.address state
+                Used for: Mailing address and contact purposes
+              */}
               <div className="relative group">
                 <MapPin className="absolute left-4 top-4 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
                 <textarea
@@ -286,6 +375,14 @@ const DonorRegistration = () => {
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-300 ml-1">Organization Name (Optional)</label>
+              {/* 
+                ORGANIZATION NAME INPUT FIELD
+                Purpose: Collect donor's organization/company name
+                Optional: Not required (for individual donors)
+                Icon: None
+                Action: On change, updates formData.organizationName state
+                Used for: Records if donor is from an organization
+              */}
               <input
                 type="text"
                 value={formData.organizationName}
@@ -295,6 +392,20 @@ const DonorRegistration = () => {
               />
             </div>
 
+            {/* 
+              REGISTER AS DONOR BUTTON (Main Submit Button)
+              Purpose: Submit registration form and create donor account
+              Color: Pink (donor portal color)
+              Size: Full width
+              States:
+              - Normal: Pink, clickable, scalable on hover
+              - Hover: Brighter pink, scales up slightly (1.02x)
+              - Loading: Shows spinner, disabled, opacity reduced
+              Action: Click to validate form and submit to backend
+              Result on success: Account created, verification email sent, shows verification screen
+              Result on failure: Error message shown above form
+              Used for: Main registration action
+            */}
             <button
               type="submit"
               disabled={loading}
@@ -305,6 +416,15 @@ const DonorRegistration = () => {
           </form>
 
           <div className="mt-8 text-center pt-6 border-t border-white/10">
+            {/* 
+              LOGIN LINK (Footer)
+              Purpose: Navigate to login page for existing donors
+              Text: "Already have an account? Login here"
+              Color: Pink (donor portal color) - brighter on hover
+              Location: Bottom of registration form
+              Action: Click to go to login page
+              Used for: Existing donors who accidentally came to registration instead of login
+            */}
             <p className="text-sm text-slate-300">
               Already have an account?{' '}
               <Link to="/login" className="text-pink-400 hover:text-white transition-colors font-bold">

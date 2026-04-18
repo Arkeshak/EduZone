@@ -96,7 +96,7 @@ const seedData = async () => {
                 SchoolId: hattonCentral.id,
                 description: 'Needs shoes for school season',
                 category: 'Uniforms',
-                cost: 2500.00,
+                amountRequired: 2500.00,
                 priority: 'High',
                 teacherId: t1Profile.id,
                 status: 'Published', // Was Approved by ZEO

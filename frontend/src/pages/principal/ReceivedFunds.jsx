@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -56,7 +56,7 @@ const ReceivedFunds = () => {
                                         </div>
 
                                         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-gray-500">
-                                            <p className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {new Date(transfer.transferDate).toLocaleDateString()}</p>
+                                            <p className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {new Date(transfer.transferredAt).toLocaleDateString()}</p>
                                             <p className="flex items-center gap-1.5">
                                                 <FileText className="w-4 h-4 text-blue-500" />
                                                 <span className="font-semibold text-blue-600">Ref: {transfer.transferReference}</span>

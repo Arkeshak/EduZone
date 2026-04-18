@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Users, School, Wallet, FileCheck, ArrowUpRight } from 'lucide-react';
@@ -43,14 +43,19 @@ const ZEODashboard = () => {
           client.get('/welfare')
         ]);
 
-        const pendingApprovals = welfareRes.data.filter(r => r.status === 'Approved by Principal').length; // Ready for ZEO
-        const totalSchools = 10; // Fixed
-        const totalStudents = 12450;
+        // Handle paginated response structure
+        const welfareData = welfareRes.data;
+        const requests = welfareData.data && Array.isArray(welfareData.data) ? welfareData.data : (Array.isArray(welfareData) ? welfareData : []);
+
+        const pendingApprovalsCount = requests.filter(r => 
+          r.status === 'PRINCIPAL_APPROVED' || 
+          r.status === 'Approved by Principal'
+        ).length;
 
         setStats({
-          totalSchools,
-          totalStudents,
-          pendingApprovals,
+          totalSchools: 10,
+          totalStudents: 12450,
+          pendingApprovals: pendingApprovalsCount,
           donationFund: donationsRes.data.donationFund || 0
         });
       } catch (error) {

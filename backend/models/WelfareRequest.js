@@ -1,3 +1,28 @@
+/**
+ * WELFARE REQUEST MODEL
+ * 
+ * File Purpose: Defines welfare/assistance request schema
+ * Used for: Tracking student financial assistance from submission to funding
+ * 
+ * Core fields:
+ * - studentId: Which student needs assistance
+ * - teacherId: Teacher who submitted request
+ * - schoolId: School the student attends
+ * - category: Type of assistance (Fees, Medical, Transport, etc.)
+ * - amountRequired: How much money is needed
+ * - status: Current workflow state (SUBMITTED → PUBLISHED → FULLY_FUNDED → TRANSFERRED)
+ * - priority: Urgency level (LOW, MEDIUM, HIGH)
+ * 
+ * State Machine Flow:
+ * SUBMITTED → PRINCIPAL_APPROVED → ZEO_APPROVED → PUBLISHED → 
+ * PARTIALLY_FUNDED → FULLY_FUNDED → TRANSFERRED
+ * 
+ * Relationships:
+ * - WelfareRequest 1:Many Donation
+ * - WelfareRequest 1:One Student
+ * - WelfareRequest 1:One Teacher
+ */
+
 const { DataTypes } = require('sequelize');
 const db = require('../config/db');
 
@@ -66,15 +91,11 @@ const WelfareRequest = db.define('WelfareRequest', {
     tableName: 'welfare_requests',
     underscored: true,
     indexes: [
-        {
-            fields: ['status']
-        },
-        {
-            fields: ['school_id']
-        },
-        {
-            fields: ['teacher_id']
-        }
+        { fields: ['status'] },
+        { fields: ['school_id'] },
+        { fields: ['teacher_id'] },
+        { fields: ['student_id'] },
+        { fields: ['created_at'] }
     ]
 });
 

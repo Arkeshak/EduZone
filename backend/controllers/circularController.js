@@ -1,3 +1,24 @@
+/**
+ * CIRCULAR CONTROLLER
+ * 
+ * File Purpose: Manages official announcements and circulars
+ * Used for: Publishing and retrieving notices to/from school stakeholders
+ * 
+ * Key functions:
+ * - publishCircular() - ZEO publishes circular to target roles
+ * - getCirculars() - Get circulars visible to user's role
+ * - updateCircular() - Modify circular (ZEO only)
+ * - deleteCircular() - Remove circular (ZEO only)
+ * 
+ * Features:
+ * - Draft and publish workflow
+ * - Role-based circular targeting (PRINCIPAL, TEACHER, etc.)
+ * - Audit trail of publisher and publish date
+ * - File attachments support
+ * 
+ * Security: Only ZEO can create/publish, others can view assigned circulars
+ */
+
 const { Circular, CircularRecipient, User } = require('../models');
 
 /**
@@ -9,10 +30,17 @@ const { Circular, CircularRecipient, User } = require('../models');
  */
 const publishCircular = async (req, res) => {
     try {
-        const { title, message, status, recipients } = req.body; // recipients: ['PRINCIPAL', 'TEACHER']
+        let { title, message, content, status, recipients } = req.body; // recipients: ['PRINCIPAL', 'TEACHER']
+
+        // Handle field name mismatch: content vs message
+        if (!message && content) message = content;
 
         if (req.user.role !== 'ZEO') {
             return res.status(403).json({ message: 'Only ZEO can publish circulars.' });
+        }
+
+        if (!title || !message) {
+            return res.status(400).json({ message: 'Title and content are required.' });
         }
 
         const circular = await Circular.create({
@@ -53,6 +81,11 @@ const getCirculars = async (req, res) => {
 
         if (role === 'ZEO') {
             circulars = await Circular.findAll({
+                include: [{
+                    model: CircularRecipient,
+                    as: 'recipients',
+                    attributes: ['role']
+                }],
                 order: [['createdAt', 'DESC']]
             });
         } else {

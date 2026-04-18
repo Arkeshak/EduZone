@@ -1,3 +1,22 @@
+/**
+ * DATABASE CONNECTION
+ * 
+ * File Purpose: Establishes and configures database connection
+ * Used for: Creating Sequelize instance for ORM operations
+ * 
+ * Configuration:
+ * - Production: MySQL database (host, port, credentials from .env)
+ * - Testing: In-memory SQLite for isolated test runs
+ * 
+ * Environment variables:
+ * - DB_NAME: Database name (default: eduzone)
+ * - DB_USER: MySQL username (default: root)
+ * - DB_PASS: MySQL password
+ * - DB_HOST: Database host (default: 127.0.0.1)
+ * - DB_PORT: Port (default: 3306)
+ * - NODE_ENV: Set to 'test' for in-memory SQLite
+ */
+
 const Sequelize = require('sequelize');
 const dotenv = require('dotenv');
 

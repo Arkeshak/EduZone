@@ -1,3 +1,25 @@
+/**
+ * SCHOOL MODEL
+ * 
+ * File Purpose: Defines school/institution data
+ * Used for: Storing school information and bank details for fund transfers
+ * 
+ * Core fields:
+ * - name: School name (unique)
+ * - address: Physical location
+ * - division: Administrative division/district
+ * - bankName/bankBranch/accountNumber/accountHolder: Bank info for receiving welfare funds
+ * 
+ * Relationships:
+ * - School 1:Many Teacher
+ * - School 1:Many Principal
+ * - School 1:Many Student
+ * - School 1:Many WelfareRequest
+ * - School 1:Many Donation
+ * 
+ * Usage: Fund transfers go to school bank account, teachers/principals belong to school
+ */
+
 const { DataTypes } = require('sequelize');
 const db = require('../config/db');
 

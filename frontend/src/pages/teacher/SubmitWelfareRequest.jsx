@@ -1,4 +1,22 @@
-﻿import { useState } from 'react';
+/**
+ * SUBMIT WELFARE REQUEST PAGE
+ * 
+ * File Purpose: Form for teachers to create new student welfare requests
+ * Used for: Initiating financial assistance requests for students in need
+ * 
+ * Features:
+ * - Student name, grade, section input
+ * - Welfare type selection (Books, Uniforms, Fees, Other)
+ * - Description/reason for request
+ * - Estimated cost amount
+ * - Optional supporting document upload
+ * - Form validation before submission
+ * 
+ * Flow: Fill form → Validate → Submit → Create request with SUBMITTED status → Redirect to tracker
+ * Security: Only teachers can submit, request scoped to their school
+ */
+
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GRADES, SECTIONS } from '@/utils/subjects';
 import { useAuth } from '@/context/AuthContext';
@@ -47,14 +65,22 @@ const SubmitWelfareRequest = () => {
 
     try {
       const fullGrade = `${formData.grade}-${formData.section}`;
+      const amount = parseFloat(formData.estimatedCost);
+
+      // ✅ Client-side validation
+      if (isNaN(amount) || amount <= 0) {
+        setError('Please enter a valid estimated cost.');
+        setLoading(false);
+        return;
+      }
 
       await client.post('/welfare', {
-        studentName: formData.studentName,
+        studentName: formData.studentName || 'Unknown Student',
         grade: fullGrade,
         category: formData.welfareType, // Mapping welfareType to category
         description: formData.description,
-        cost: parseFloat(formData.estimatedCost),
-        priority: 'Medium' // Default or add field
+        amountRequired: amount,
+        priority: 'MEDIUM' // Must strictly match backend UPPERCASE ENUM
       });
 
       setSuccess(true);
@@ -167,9 +193,16 @@ const SubmitWelfareRequest = () => {
                 required
                 min="0"
                 value={formData.estimatedCost}
-                onChange={(e) => setFormData({ ...formData, estimatedCost: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  // ✅ Basic numeric validation while typing
+                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                    setFormData({ ...formData, estimatedCost: val });
+                  }
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="0.00"
+                step="0.01"
               />
             </div>
 

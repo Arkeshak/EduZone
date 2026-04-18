@@ -1,3 +1,19 @@
+/**
+ * RESOURCE CONTROLLER
+ * 
+ * File Purpose: Manages educational resource sharing and distribution
+ * Used for: Teachers uploading materials, students downloading, resource discovery
+ * 
+ * Key functions:
+ * - uploadResource() - Teacher uploads file (PDF, doc, video, etc.)
+ * - getPublicResources() - Search/filter available resources
+ * - getMyResources() - Teacher views uploaded files
+ * - updateResource() - Teacher edits resource metadata
+ * - deleteResource() - Teacher removes resource
+ * 
+ * Data: Title, description, subject, grade level, file URL, visibility
+ */
+
 const { Resource, Teacher, School, Subject, User } = require('../models');
 
 // @desc    Upload a new resource (Teacher)

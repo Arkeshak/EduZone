@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import ChangePassword from '@/components/ChangePassword';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,18 +7,44 @@ import { Input } from '@/components/ui/input';
 import { User, Mail, Phone, MapPin, Building, BookOpen, Calendar, Save } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import client from '@/services/apiClient';
 
 const TeacherProfile = () => {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [subjects, setSubjects] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
-    name: user?.name || 'Teacher Name',
-    school: 'Hatton High School',
-    designation: 'Senior Teacher',
-    phone: '+94 77 123 4567',
-    address: '123, Main Street, Hatton'
+    name: user?.name || 'Loading...',
+    school: 'Loading...',
+    designation: 'Teacher',
+    phone: '',
+    address: ''
   });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const { data } = await client.get('/auth/me');
+        if (data.success) {
+          setFormData({
+            name: data.fullName || user?.name || '',
+            school: data.school?.name || 'Not Assigned',
+            designation: 'Teacher',
+            phone: data.profile?.contactNumber || 'Not set',
+            address: data.school?.address || 'Not set'
+          });
+          setSubjects(data.profile?.subjects || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch profile", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, [user]);
 
   const handleSave = () => {
     setIsEditing(false);
@@ -126,8 +152,13 @@ const TeacherProfile = () => {
                   Subjects Taught
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">Mathematics</span>
-                  <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">Science</span>
+                  {subjects.length > 0 ? subjects.map((sub, idx) => (
+                    <span key={idx} className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
+                      {sub.name}
+                    </span>
+                  )) : (
+                    <span className="text-gray-500 text-sm">No subjects assigned</span>
+                  )}
                 </div>
               </div>
 

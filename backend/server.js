@@ -1,105 +1,212 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const path = require('path');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const { sequelize } = require('./models'); // Import from central index
+/**
+ * EDUZONE BACKEND SERVER
+ * 
+ * Main Express server entry point
+ * Handles:
+ * - Middleware configuration (security, validation, auth)
+ * - Route setup
+ * - Database connection
+ * - Error handling
+ * - Server startup
+ */
 
-// Load environment variables
+const express = require('express');        // Web framework
+const cors = require('cors');              // Handle cross-origin requests
+const dotenv = require('dotenv');          // Load environment variables
+const path = require('path');              // Path utilities
+const helmet = require('helmet');          // Set security headers
+const rateLimit = require('express-rate-limit');  // Prevent abuse
+const { sequelize } = require('./models'); // Sequelize instance for DB
+const { ALLOWED_ORIGINS, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS, IS_PRODUCTION, SECURITY_HEADERS_ENABLED } = require('./config/constants');
+const { sanitizeInput } = require('./middleware/sanitization');
+const { asyncHandler, errorHandler } = require('./middleware/errorHandler');
+
+// ✅ Load environment variables from .env file
+// Sets: JWT_ACCESS_SECRET, JWT_REFRESH_SECRET, DB_NAME, EMAIL_USER, etc.
 dotenv.config();
 
+// ✅ Create Express app
 const app = express();
 
-// Middleware
+/**
+ * MIDDLEWARE 1: HELMET - SECURITY HEADERS
+ * 
+ * Purpose: Set HTTP security headers to prevent common attacks
+ * - Prevents clickjacking (X-Frame-Options)
+ * - Prevents MIME sniffing (X-Content-Type-Options)
+ * - Enforces HTTPS (HSTS)
+ * - Content Security Policy (CSP) restricts script sources
+ */
 app.use(helmet({
-    crossOriginResourcePolicy: false, // allow images to be loaded cross origin
-}));
-app.use(cors({
-    origin: ["http://localhost:5173", "https://eduzone-backend-etd0hfbqapg8dffs.eastasia-01.azurewebsites.net"]
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Custom XSS Sanitizer for req.body only
-const sanitizeBody = (obj) => {
-    if (!obj) return;
-    for (const key in obj) {
-        if (typeof obj[key] === 'string') {
-            obj[key] = obj[key].replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-            sanitizeBody(obj[key]);
+    crossOriginResourcePolicy: false,  // Allow cross-origin resources (e.g., images)
+    contentSecurityPolicy: process.env.CSP_ENABLED !== 'false' ? {
+        directives: {
+            defaultSrc: ["'self'"],                    // Only allow resources from own domain
+            scriptSrc: ["'self'", "'unsafe-inline'"],  // Allow inline scripts (for dev)
+            styleSrc: ["'self'", "'unsafe-inline'"],   // Allow inline styles
+            imgSrc: ["'self'", "data:", "https:"],     // Allow images from self, data URIs, https
+            connectSrc: ["'self'", "https:"],          // Allow API calls to self and https
+            frameSrc: ["'self'"],                      // Only embed frames from own domain
+            objectSrc: ["'none'"]                      // Disable plugins
         }
+    } : false,
+    hsts: {
+        maxAge: 31536000,              // 1 year
+        includeSubDomains: true,       // Apply to subdomains
+        preload: true                  // Include in browser's preload list
     }
-};
-app.use((req, res, next) => {
-    if (req.body) sanitizeBody(req.body);
-    next();
-});
+}));
 
-// Global Rate Limiter
+/**
+ * MIDDLEWARE 2: CORS - CROSS-ORIGIN REQUESTS
+ * 
+ * Purpose: Allow frontend to make requests to this backend
+ * Only specified origins (domains) are allowed
+ * Prevents malicious websites from calling our API
+ */
+app.use(cors({
+    origin: ALLOWED_ORIGINS,                          // Allowed domains from config
+    credentials: true,                                // Allow cookies/auth headers
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],  // Allowed HTTP methods
+    allowedHeaders: ['Content-Type', 'Authorization'],  // Allowed request headers
+    maxAge: 86400                                      // Cache CORS preflight 24 hours
+}));
+
+/**
+ * MIDDLEWARE 3: BODY PARSER - PARSE REQUEST BODY
+ * 
+ * Purpose: Convert JSON and form data to JavaScript objects
+ * Limit 10MB to prevent huge payloads (DoS protection)
+ */
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+/**
+ * MIDDLEWARE 4: INPUT SANITIZATION
+ * 
+ * Purpose: Clean malicious content from user inputs
+ * Example: Remove or escape <script> tags
+ */
+app.use(sanitizeInput);
+
+/**
+ * MIDDLEWARE 5: RATE LIMITING
+ * 
+ * Purpose: Prevent abuse by limiting requests per IP
+ * - Max X requests per Y minutes
+ * - Disabled in development (would interfere with testing)
+ * - Enabled in production (protects against DDoS)
+ */
 const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    message: { message: "Too many requests from this IP, please try again after 15 minutes" }
+    windowMs: RATE_LIMIT_WINDOW_MS,          // e.g., 15 minutes
+    max: RATE_LIMIT_MAX_REQUESTS,            // e.g., 60 requests
+    standardHeaders: true,                   // Return rate limit info in headers
+    legacyHeaders: false,
+    message: { message: "Too many requests from this IP, please try again later" },
+    skip: (req) => !IS_PRODUCTION             // Skip in development
 });
-app.use('/api', apiLimiter);
+app.use('/api', apiLimiter);  // Apply to /api routes only
 
-// Request logger
+/**
+ * MIDDLEWARE 6: REQUEST LOGGER
+ * 
+ * Purpose: Log every request (useful for debugging and monitoring)
+ * Shows: HTTP method, URL path, timestamp
+ */
 app.use((req, res, next) => {
     console.log(`${req.method} ${req.url} - ${new Date().toISOString()}`);
     next();
 });
 
-// Routes
+/**
+ * ROUTE SETUP
+ * 
+ * Maps URL paths to their corresponding route handlers
+ * Organizes API into logical domains:
+ * - /api/auth - Authentication (login, register, verify)
+ * - /api/schools - School management
+ * - /api/welfare - Welfare requests lifecycle
+ * - /api/donations - Donation management
+ * - /api/resources - Educational resources
+ * - /api/circulars - Announcements
+ * - /api/reports - Reports
+ * - /api/transfers - Fund transfers
+ */
+
+// ✅ Serve uploaded files (images, documents)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// ✅ Auth routes (public: register, verify, login)
 app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/schools', require('./routes/schoolRoutes')); // New School Routes
+
+// ✅ School routes (protected: get schools, my school)
+app.use('/api/schools', require('./routes/schoolRoutes'));
+
+// ✅ Welfare routes (core business: request management)
 app.use('/api/welfare', require('./routes/welfareRoutes'));
+
+// ✅ Donation routes (collecting funds)
 app.use('/api/donations', require('./routes/donationRoutes'));
+
+// ✅ Resource routes (sharing educational material)
 app.use('/api/resources', require('./routes/resourceRoutes'));
+
+// ✅ Circular routes (announcements)
 app.use('/api/circulars', require('./routes/circularRoutes'));
+
+// ✅ Report routes (analytics)
 app.use('/api/reports', require('./routes/reportRoutes'));
+
+// ✅ Transfer routes (moving funds)
 app.use('/api/transfers', require('./routes/transferRoutes'));
 
+/**
+ * HEALTH CHECK ENDPOINTS
+ */
+
+// ✅ Root endpoint (verify server is running)
 app.get("/", (req, res) => {
-    res.send("EduZone Backend Running on Azure 🚀");
+    res.send("EduZone Backend Running 🚀");
 });
 
-// Database Connection
+// ✅ Health check (for monitoring/uptime)
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+/**
+ * 404 HANDLER
+ * 
+ * Purpose: Catch requests to non-existent endpoints
+ * Should be before error handler
+ */
+app.use((req, res) => {
+    res.status(404).json({ success: false, message: 'Endpoint not found' });
+});
+
+/**
+ * ERROR HANDLER (Must be LAST)
+ * 
+ * Purpose: Centralized error handling
+ * Catches all errors from routes and middleware
+ * Formats error response consistently
+ */
+app.use(errorHandler);
+
+/**
+ * DATABASE CONNECTION & SERVER STARTUP
+ */
+
+// ✅ Only connect to database if not in test mode (tests use separate DB)
 if (process.env.NODE_ENV !== 'test') {
+    /**
+     * Authenticate with database
+     * Calls: SELECT 1 (verifies connection and credentials)
+     */
     sequelize.authenticate()
         .then(() => console.log('Database connected successfully...'))
         .catch(err => console.log('Database Connection Error: ' + err));
 }
-
-// Error handler
-app.use((err, req, res, next) => {
-    console.error("SERVER ERROR:", err);
-
-    // Default error status and message
-    let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-    let message = err.message || 'Internal Server Error';
-
-    // Handle specific Sequelize errors securely
-    if (err.name === 'SequelizeUniqueConstraintError') {
-        statusCode = 400;
-        message = 'Duplicate field value entered';
-    }
-
-    if (err.name === 'SequelizeValidationError') {
-        statusCode = 400;
-        message = err.errors.map(e => e.message).join(', ');
-    }
-
-    res.status(statusCode).json({
-        success: false,
-        message,
-        stack: process.env.NODE_ENV === 'production' ? null : err.stack
-    });
-});
 
 // Handle Unhandled Promise Rejections
 process.on('unhandledRejection', (err, promise) => {

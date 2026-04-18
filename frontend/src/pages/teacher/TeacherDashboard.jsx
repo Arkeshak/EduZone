@@ -1,4 +1,20 @@
-﻿import { useState, useEffect } from 'react';
+/**
+ * TEACHER DASHBOARD PAGE
+ * 
+ * File Purpose: Main landing page for logged-in teachers
+ * Used for: Quick overview of welfare requests, recent activity, quick actions
+ * 
+ * Features:
+ * - Statistics: Total requests, pending, approved, rejected counts
+ * - Recent notifications from welfare request status changes
+ * - Quick links to: Submit request, Upload resource, Track requests
+ * - Visual cards showing request breakdown
+ * 
+ * Data: Fetches from /welfare endpoint and displays teacher's own requests
+ * Layout: Uses DashboardLayout wrapper for sidebar and header
+ */
+
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { FileText, CheckCircle, Clock, XCircle, TrendingUp } from 'lucide-react';
@@ -26,28 +42,37 @@ const TeacherDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { data: requests } = await client.get('/welfare');
+        const { data } = await client.get('/welfare');
+        
+        // Handle paginated response structure
+        const requests = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
 
         // Calculate Stats
         const total = requests.length;
-        const pending = requests.filter(r => r.status.toLowerCase().includes('pending')).length;
-        const approved = requests.filter(r => r.status.toLowerCase().includes('approved')).length;
-        const rejected = requests.filter(r => r.status.toLowerCase().includes('rejected')).length;
+        const pending = requests.filter(r => 
+          r.status?.toUpperCase() === 'SUBMITTED' || 
+          r.status?.toUpperCase().includes('PENDING')
+        ).length;
+        const approved = requests.filter(r => 
+          r.status?.toUpperCase().includes('APPROVED') || 
+          r.status?.toUpperCase() === 'PUBLISHED'
+        ).length;
+        const rejected = requests.filter(r => r.status?.toUpperCase().includes('REJECTED')).length;
 
         setStats({ totalRequests: total, pending, approved, rejected });
 
         // Generate Notifications from recent status changes
-        // In a real app, this would come from a /notifications endpoint
         const recent = requests.slice(0, 3).map(r => ({
           id: r.id,
           text: `Request for ${r.studentName}: ${r.status}`,
           time: new Date(r.createdAt).toLocaleDateString(),
-          type: r.status.includes('Approved') ? 'success' : r.status.includes('Rejected') ? 'danger' : 'info'
+          type: r.status.includes('Approved') || r.status.includes('PUBLISHED') ? 'success' : r.status.includes('Rejected') ? 'danger' : 'info'
         }));
         setNotifications(recent);
 
       } catch (error) {
         console.error("Failed to load dashboard data", error);
+        setNotifications([]);
       } finally {
         setLoading(false);
       }

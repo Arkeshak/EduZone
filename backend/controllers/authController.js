@@ -1,30 +1,58 @@
-const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const { User, School, Teacher, Principal, Donor, PasswordReset } = require('../models');
-const sendEmail = require('../utils/sendEmail');
+/**
+ * AUTHENTICATION CONTROLLER
+ * 
+ * File Purpose: Handles all authentication logic
+ * Used for: User registration, login, password reset, email verification, token refresh
+ * 
+ * Key functions:
+ * - registerDonor() - Create donor account with email verification
+ * - loginUser() - Authenticate user and issue JWT tokens
+ * - verifyEmail() - Verify account with 6-digit code
+ * - refreshTokenEndpoint() - Issue new access token using refresh token
+ * - forgotPassword() - Send password reset email
+ * - resetPassword() - Set new password with reset token
+ * - changePassword() - Change password for logged-in user
+ * 
+ * Security: Passwords hashed with bcrypt, JWTs signed with secrets, email verification required
+ */
 
-// Generate JWT Access Token
-const generateAccessToken = (user, profile) => {
+const crypto = require('crypto'); 
+const jwt = require('jsonwebtoken'); 
+const bcrypt = require('bcryptjs'); 
+const { User, School, Teacher, Principal, Donor, PasswordReset } = require('../models'); 
+const sendEmail = require('../utils/sendEmail'); 
+const { JWT_ACCESS_EXPIRY, JWT_REFRESH_EXPIRY, JWT_ISSUER, JWT_AUDIENCE, PASSWORD_RESET_MIN_RESPONSE_TIME_MS } = require('../config/constants'); 
+
+// ✅ Get JWT secrets from environment (required for token signing)
+const ACCESS_TOKEN_SECRET = process.env.JWT_ACCESS_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.JWT_REFRESH_SECRET;
+
+if (!ACCESS_TOKEN_SECRET || !REFRESH_TOKEN_SECRET) {
+    throw new Error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET environment variables are required');
+}
+
+// Generate JWT Access Token (short-lived, minimal claims)
+const generateAccessToken = (user) => {
     return jwt.sign({
+        type: 'access',
         id: user.id,
-        role: user.role,
-        name: user.fullName,
-        email: user.email,
-        profileId: profile ? profile.id : null,
-        schoolId: (user.role === 'TEACHER' || user.role === 'PRINCIPAL') ? profile?.schoolId : null,
-        school: (profile && profile.school) ? profile.school.name : null
-    }, process.env.JWT_SECRET, {
-        expiresIn: '15m', // Short-lived access token
+        role: user.role
+    }, ACCESS_TOKEN_SECRET, {
+        expiresIn: JWT_ACCESS_EXPIRY,
+        issuer: JWT_ISSUER,
+        audience: JWT_AUDIENCE
     });
 };
 
-// Generate Refresh Token
+// Generate Refresh Token (longer-lived)
 const generateRefreshToken = (user) => {
     return jwt.sign({
-        id: user.id,
-    }, process.env.JWT_SECRET, {
-        expiresIn: '7d', // Longer-lived refresh token
+        type: 'refresh',
+        id: user.id
+    }, REFRESH_TOKEN_SECRET, {
+        expiresIn: JWT_REFRESH_EXPIRY,
+        issuer: JWT_ISSUER,
+        audience: JWT_AUDIENCE
     });
 };
 
@@ -61,12 +89,21 @@ const registerDonor = async (req, res) => {
     // Validate Password
     const passwordError = validatePassword(password);
     if (passwordError) {
-        return res.status(400).json({ message: passwordError });
+        return res.status(400).json({ success: false, message: passwordError });
     }
 
+    const { sequelize } = require('../models');
+    const transaction = await sequelize.transaction();
+
     try {
-        const userExists = await User.findOne({ where: { email: cleanEmail } });
-        if (userExists) return res.status(400).json({ message: 'User already exists' });
+        const userExists = await User.findOne(
+            { where: { email: cleanEmail } },
+            { transaction }
+        );
+        if (userExists) {
+            await transaction.rollback();
+            return res.status(400).json({ success: false, message: 'User already exists' });
+        }
 
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
@@ -81,34 +118,88 @@ const registerDonor = async (req, res) => {
             passwordHash: hashedPassword,
             role: 'DONOR',
             isVerified: false,
-            activationToken: verificationCode, // Reuse activationToken for verification code
+            activationToken: verificationCode,
             activationExpires: verificationExpires
-        });
+        }, { transaction });
 
         // Create Profile
         await Donor.create({
             userId: user.id,
             organizationName: organizationName || name
-        });
+        }, { transaction });
 
+        // ✅ Send email BEFORE committing transaction
+        let emailSent = false;
         try {
+            const { EMAIL_TIMEOUT, EMAIL_RETRY_ENABLED, EMAIL_RETRY_DELAY_MS } = require('../config/constants');
+
             await sendEmail({
                 email: user.email,
                 subject: 'Verify Your EduZone Donor Account',
-                message: `Your verification code is: ${verificationCode}`
+                message: `Your verification code is: ${verificationCode}`,
+                html: `
+                    <h2>Welcome to EduZone!</h2>
+                    <p>Your verification code is: <strong>${verificationCode}</strong></p>
+                    <p>This code expires in 15 minutes.</p>
+                    <p>If you didn't request this, please ignore this email.</p>
+                `
             });
-        } catch (e) {
-            console.error("Email failed", e);
-            // We still proceed, but user might need to resend. 
-            // Ideally we handle this better but for now log it.
+            emailSent = true;
+        } catch (err) {
+            console.error("Email send failed:", err.message);
+
+            // ✅ Retry logic if enabled
+            if (process.env.EMAIL_RETRY_ENABLED === 'true') {
+                try {
+                    console.log('Retrying email send...');
+                    await new Promise(r => setTimeout(r, 2000));
+                    await sendEmail({
+                        email: user.email,
+                        subject: 'Verify Your EduZone Donor Account',
+                        message: `Your verification code is: ${verificationCode}`
+                    });
+                    emailSent = true;
+                } catch (retryErr) {
+                    console.error("Email retry failed:", retryErr.message);
+                }
+            }
         }
 
+        if (!emailSent) {
+            // ❌ Email failed - rollback entire transaction
+            await transaction.rollback();
+
+            return res.status(503).json({
+                success: false,
+                message: 'Email service temporarily unavailable. Please try again later.',
+                code: 'EMAIL_SERVICE_ERROR',
+                retryAfter: 300
+            });
+        }
+
+        // ✅ Only commit if email succeeded
+        await transaction.commit();
+
         res.status(201).json({
-            message: 'Registration successful! Please verify your email.',
-            user: { id: user.id, name: user.fullName, role: user.role }
+            success: true,
+            message: 'Registration successful! Verification code sent to your email.',
+            user: {
+                id: user.id,
+                name: user.fullName,
+                role: user.role,
+                email: cleanEmail
+            },
+            verificationCodeExpiry: 15
         });
+
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        if (transaction) await transaction.rollback();
+
+        res.status(500).json({
+            success: false,
+            message: 'Registration failed. Please try again.',
+            code: 'REGISTRATION_ERROR'
+        });
     }
 };
 
@@ -255,7 +346,7 @@ const loginUser = async (req, res) => {
 
         if (!user) {
             console.log(`[LOGIN_FAIL] User not found for email: ${email}`);
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
         const isMatch = await bcrypt.compare(cleanPassword, user.passwordHash);
@@ -264,12 +355,21 @@ const loginUser = async (req, res) => {
         if (user && isMatch) {
             if (!user.isVerified) {
                 console.log(`[LOGIN_FAIL] User ${user.email} not verified`);
-                return res.status(401).json({ message: 'Email not verified.' });
+                return res.status(401).json({ success: false, message: 'Email not verified.' });
             }
 
-            // Fetch Profile based on role
+            // Generate tokens (minimal claims for security)
+            const accessToken = generateAccessToken(user);
+            const refreshToken = generateRefreshToken(user);
+
+            // Store refresh token in DB
+            user.refreshToken = refreshToken;
+            await user.save();
+
+            // Fetch profile-specific data
             let profile = null;
             let schoolName = null;
+            let schoolId = null;
 
             if (user.role === 'TEACHER') {
                 profile = await Teacher.findOne({
@@ -277,44 +377,81 @@ const loginUser = async (req, res) => {
                     include: [{ model: School, as: 'school' }]
                 });
                 schoolName = profile?.school?.name;
+                schoolId = profile?.schoolId;
             } else if (user.role === 'PRINCIPAL') {
                 profile = await Principal.findOne({
                     where: { userId: user.id },
                     include: [{ model: School, as: 'school' }]
                 });
                 schoolName = profile?.school?.name;
+                schoolId = profile?.schoolId;
             } else if (user.role === 'DONOR') {
                 profile = await Donor.findOne({ where: { userId: user.id } });
             }
 
-            const accessToken = generateAccessToken(user, profile);
-            const refreshToken = generateRefreshToken(user);
-
-            // Store refresh token in DB
-            user.refreshToken = refreshToken;
-            await user.save();
-
-            res.json({
+            res.status(200).json({
+                success: true,
                 id: user.id,
                 profileId: profile?.id,
                 name: user.fullName,
                 email: user.email,
                 role: user.role,
                 school: schoolName,
-                schoolId: (user.role === 'TEACHER' || user.role === 'PRINCIPAL') ? profile?.schoolId : null,
+                schoolId: schoolId,
                 token: accessToken,
                 refreshToken: refreshToken
             });
         } else {
-            res.status(401).json({ message: 'Invalid credentials' });
+            res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
 const getMe = async (req, res) => {
-    res.status(200).json(req.user);
+    try {
+        // Get user with full details
+        const user = await User.findByPk(req.user.id, {
+            attributes: { exclude: ['passwordHash', 'refreshToken', 'activationToken'] }
+        });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Fetch role-specific profile
+        let profile = null;
+        let schoolInfo = null;
+
+        if (user.role === 'TEACHER') {
+            profile = await Teacher.findOne({
+                where: { userId: user.id },
+                include: [
+                    { model: School, as: 'school', attributes: ['id', 'name', 'division'] },
+                    { model: require('../models').Subject, as: 'subjects', attributes: ['name'] }
+                ]
+            });
+            schoolInfo = profile?.school;
+        } else if (user.role === 'PRINCIPAL') {
+            profile = await Principal.findOne({
+                where: { userId: user.id },
+                include: [{ model: School, as: 'school', attributes: ['id', 'name', 'division'] }]
+            });
+            schoolInfo = profile?.school;
+        } else if (user.role === 'DONOR') {
+            profile = await Donor.findOne({ where: { userId: user.id } });
+        }
+
+        res.status(200).json({
+            success: true,
+            ...user.toJSON(),
+            profile,
+            school: schoolInfo
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
 
 const deleteUser = async (req, res) => {
@@ -334,43 +471,55 @@ const deleteUser = async (req, res) => {
 const forgotPassword = async (req, res) => {
     const { email } = req.body;
     const cleanEmail = email.trim().toLowerCase();
+    const { PASSWORD_RESET_MIN_RESPONSE_TIME_MS, PASSWORD_RESET_EXPIRY_MINUTES, FRONTEND_URL } = require('../config/constants');
+
+    const startTime = Date.now();
 
     try {
         const user = await User.findOne({ where: { email: cleanEmail } });
 
-        if (!user) {
-            return res.status(200).json({ success: true, data: 'If an account with that email exists, a reset link has been sent.' });
+        if (user) {
+            // Generate Token
+            const resetToken = crypto.randomBytes(32).toString('hex');
+            const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+            const expiresAt = new Date(Date.now() + PASSWORD_RESET_EXPIRY_MINUTES * 60 * 1000);
+
+            await PasswordReset.create({
+                userId: user.id,
+                tokenHash,
+                expiresAt
+            });
+
+            const resetUrl = `${FRONTEND_URL}/reset-password/${resetToken}`;
+
+            const message = `
+                <h1>Password Reset Request</h1>
+                <p>You are receiving this email because you requested a password reset for your EduZone account.</p>
+                <p>Please click on the link below to reset your password:</p>
+                <a href="${resetUrl}">${resetUrl}</a>
+                <p>This link expires in ${PASSWORD_RESET_EXPIRY_MINUTES} minutes.</p>
+            `;
+
+            try {
+                await sendEmail({ email: user.email, subject: 'EduZone Password Reset', message });
+            } catch (err) {
+                console.error("Email send error:", err);
+            }
         }
 
-        // Generate Token
-        const resetToken = crypto.randomBytes(32).toString('hex');
-        const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
-        const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 Minutes
+        // ✅ Enforce minimum response time (constant-time response to prevent email enumeration)
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime < PASSWORD_RESET_MIN_RESPONSE_TIME_MS) {
+            await new Promise(r => setTimeout(r, PASSWORD_RESET_MIN_RESPONSE_TIME_MS - elapsedTime));
+        }
 
-        await PasswordReset.create({
-            userId: user.id,
-            tokenHash,
-            expiresAt
+        // ✅ Always return same response regardless of whether user exists
+        res.status(200).json({
+            success: true,
+            message: 'If an account with that email exists, a reset link has been sent.'
         });
-
-        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-
-        const message = `
-            <h1>Password Reset Request</h1>
-            <p>You are receiving this email because you requested a password reset for your EduZone account.</p>
-            <p>Please click on the link below to reset your password:</p>
-            <a href="${resetUrl}">${resetUrl}</a>
-        `;
-
-        try {
-            await sendEmail({ email: user.email, subject: 'EduZone Password Reset', message });
-            res.status(200).json({ success: true, data: 'Email sent' });
-        } catch (err) {
-            console.error("Email send error:", err);
-            return res.status(500).json({ message: 'Email could not be sent' });
-        }
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: 'An error occurred' });
     }
 };
 
@@ -484,39 +633,49 @@ const verifyEmail = async (req, res) => {
  * @desc    Refresh Access Token
  * @route   POST /api/auth/refresh
  * @access  Public (Requires valid refresh token in body)
- * @details Validates the refresh token against the DB, rotates the token for security, 
- *          re-loads user profile claims, and issues new access and refresh tokens.
+ * @details Validates the refresh token against the DB, verifies token type, 
+ *          and issues a new access token.
  */
 const refreshTokenEndpoint = async (req, res) => {
     const { refreshToken } = req.body;
-    if (!refreshToken) return res.status(401).json({ message: 'Refresh Token required' });
+    if (!refreshToken) {
+        return res.status(401).json({ success: false, message: 'Refresh token is required' });
+    }
 
     try {
-        const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
-        const user = await User.findByPk(decoded.id);
+        // ✅ Verify with REFRESH token secret
+        const decoded = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
 
-        if (!user) return res.status(403).json({ message: 'Invalid refresh token' });
-
-        // Ensure token matches what's in DB (prevents reuse after logout or another device login)
-        if (user.refreshToken !== refreshToken) {
-            return res.status(403).json({ message: 'Refresh token has been revoked' });
+        // ✅ Verify it's actually a refresh token
+        if (decoded.type !== 'refresh') {
+            return res.status(401).json({ success: false, message: 'Invalid token type' });
         }
 
-        // Generate profile context based on role if needed for claims
-        let profile = null;
-        if (user.role === 'TEACHER') profile = await require('../models').Teacher.findOne({ where: { userId: user.id }, include: ['school'] });
-        else if (user.role === 'PRINCIPAL') profile = await require('../models').Principal.findOne({ where: { userId: user.id }, include: ['school'] });
-        else if (user.role === 'DONOR') profile = await require('../models').Donor.findOne({ where: { userId: user.id } });
+        const user = await User.findByPk(decoded.id);
+        if (!user) {
+            return res.status(401).json({ success: false, message: 'User not found' });
+        }
 
-        const newAccessToken = generateAccessToken(user, profile);
-        const newRefreshToken = generateRefreshToken(user); // Rotate token
+        // ✅ Verify token matches DB record (prevents reuse after logout)
+        if (user.refreshToken !== refreshToken) {
+            return res.status(401).json({ success: false, message: 'Refresh token has been revoked' });
+        }
 
-        user.refreshToken = newRefreshToken;
-        await user.save();
+        // Generate new Access Token
+        const newAccessToken = generateAccessToken(user);
 
-        res.json({ token: newAccessToken, refreshToken: newRefreshToken });
-    } catch (err) {
-        return res.status(403).json({ message: 'Invalid or expired refresh token' });
+        res.status(200).json({
+            success: true,
+            token: newAccessToken
+        });
+    } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ success: false, message: 'Refresh token expired' });
+        } else if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ success: false, message: 'Invalid refresh token' });
+        }
+
+        res.status(500).json({ success: false, message: 'Token refresh failed' });
     }
 };
 
@@ -534,6 +693,69 @@ const logoutUser = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Update User Profile
+ * @route   PUT /api/auth/profile
+ * @access  Private
+ * @details Allows users to update their profile information. 
+ *          For donors, updates both User and Donor models.
+ */
+const updateProfile = async (req, res) => {
+    const { fullName, organizationName, contactNumber } = req.body;
+    const { sequelize } = require('../models');
+    const transaction = await sequelize.transaction();
+
+    try {
+        const user = await User.findByPk(req.user.id, { transaction });
+        if (!user) {
+            await transaction.rollback();
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Update User fields
+        if (fullName) user.fullName = fullName;
+        await user.save({ transaction });
+
+        // Update Role-specific profile
+        if (user.role === 'DONOR') {
+            const donor = await Donor.findOne({ where: { userId: user.id }, transaction });
+            if (donor) {
+                if (organizationName !== undefined) donor.organizationName = organizationName;
+                if (contactNumber !== undefined) donor.contactNumber = contactNumber;
+                await donor.save({ transaction });
+            }
+        } else if (user.role === 'PRINCIPAL') {
+            const principal = await Principal.findOne({ where: { userId: user.id }, transaction });
+            if (principal) {
+                if (contactNumber !== undefined) principal.contactNumber = contactNumber;
+                await principal.save({ transaction });
+            }
+        } else if (user.role === 'TEACHER') {
+            const teacher = await Teacher.findOne({ where: { userId: user.id }, transaction });
+            if (teacher) {
+                if (contactNumber !== undefined) teacher.contactNumber = contactNumber;
+                await teacher.save({ transaction });
+            }
+        }
+
+        await transaction.commit();
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile updated successfully',
+            user: {
+                id: user.id,
+                fullName: user.fullName,
+                role: user.role
+            }
+        });
+    } catch (error) {
+        if (transaction) await transaction.rollback();
+        console.error('Update profile error:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 module.exports = {
     registerDonor,
     verifyEmail,
@@ -546,5 +768,6 @@ module.exports = {
     changePassword,
     activateAccount,
     refreshTokenEndpoint,
-    logoutUser
+    logoutUser,
+    updateProfile
 };

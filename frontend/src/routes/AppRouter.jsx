@@ -1,4 +1,24 @@
-﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+﻿/**
+ * APP ROUTER
+ * 
+ * File Purpose: Central routing configuration for entire application
+ * Used for: Defining all pages and their routes, role-based access patterns
+ * 
+ * Structure:
+ * - Public routes: Home, Login, Registration, Password reset (no auth needed)
+ * - Protected routes: All dashboards, management pages (require authentication)
+ * - Role-based routes: Teacher, Principal, ZEO, Donor specific pages
+ * 
+ * Route groups:
+ * - Teachers: Dashboard, Welfare requests, Resources, Circulars
+ * - Principals: Dashboard, Approve requests, Reports, Circulars, Fund tracking
+ * - ZEOs: Dashboard, User management, Approvals, Donations, Analytics
+ * - Donors: Dashboard, Browse requests, Make donations, Track donations
+ * 
+ * Security: ProtectedRoute wrapper enforces authentication and role checks
+ */
+
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '@/context/AuthContext';
 import ProtectedRoute from './ProtectedRoute';
 

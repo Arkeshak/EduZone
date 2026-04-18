@@ -7,7 +7,8 @@ describe('Welfare API Endpoints', () => {
         it('should get published welfare requests', async () => {
             const res = await request(app).get('/api/welfare/published');
             expect(res.statusCode).toBe(200);
-            expect(Array.isArray(res.body)).toBe(true);
+            const data = res.body.data || res.body;
+            expect(Array.isArray(data)).toBe(true);
         });
     });
 

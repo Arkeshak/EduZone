@@ -1,4 +1,22 @@
-﻿import { useState } from 'react';
+﻿/**
+ * ACTIVATE ACCOUNT PAGE
+ * 
+ * File Purpose: Complete donor account activation after email verification
+ * Used for: Setting password for newly registered donor accounts
+ * 
+ * Features:
+ * - Enter password (first time)
+ * - Confirm password
+ * - Password strength validation
+ * - Show/hide password toggle  
+ * - Activation confirmation
+ * - Redirect to login
+ * 
+ * URL: /activate/:token (token from verification email)
+ * Flow: Donor registers → Receives verification email → Clicks activation link → This page → Sets password → Account active
+ */
+
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Lock, ArrowLeft, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';

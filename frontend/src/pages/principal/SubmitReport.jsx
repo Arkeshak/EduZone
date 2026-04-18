@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -191,22 +191,22 @@ const SubmitReport = () => {
                 {reports.length === 0 ? (
                   <p className="p-4 text-center text-gray-500 text-sm italic">No reports submitted yet.</p>
                 ) : (
-                  reports.map(r => (
-                    <button
-                      key={r.id}
-                      onClick={() => handleMonthChange({ target: { value: r.month } })}
-                      className={`w-full text-left p-4 hover:bg-slate-50 transition-colors flex justify-between items-center ${formData.month === r.month ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
-                    >
-                      <div>
-                        <p className="font-semibold text-slate-900">{r.month}</p>
-                        <p className="text-xs text-slate-500">Staff Att: {r.staffAttendance}%</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-slate-700">{r.averageAttendance}%</p>
-                        <p className="text-[10px] text-slate-400">Attendance</p>
-                      </div>
-                    </button>
-                  ))
+                    reports.map(r => (
+                      <button
+                        key={r.id}
+                        onClick={() => handleMonthChange({ target: { value: r.month?.slice(0, 7) } })}
+                        className={`w-full text-left p-4 hover:bg-slate-50 transition-colors flex justify-between items-center ${formData.month === r.month?.slice(0, 7) ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                      >
+                        <div>
+                          <p className="font-semibold text-slate-900">{r.month?.slice(0, 7)}</p>
+                          <p className="text-xs text-slate-500">Staff Att: {r.staffAttendance}%</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-slate-700">{r.averageAttendance}%</p>
+                          <p className="text-[10px] text-slate-400">Attendance</p>
+                        </div>
+                      </button>
+                    ))
                 )}
               </div>
             </CardContent>

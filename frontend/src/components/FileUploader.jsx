@@ -1,4 +1,27 @@
-﻿import React from 'react';
+﻿/**
+ * FILE UPLOADER COMPONENT
+ * 
+ * File Purpose: Reusable drag-and-drop file upload UI component
+ * Used for: Teachers uploading resources, donors uploading receipts, etc.
+ * 
+ * Features:
+ * - Drag and drop zone
+ * - Click to select file
+ * - File type filtering (PDF, DOC, images)
+ * - File size limits
+ * - Display selected file name
+ * - Helper text showing accepted formats
+ * 
+ * Props:
+ * - id: HTML input id
+ * - label: Label text above uploader
+ * - accept: File type filter (.pdf,.doc,.docx,.jpg)
+ * - onChange: Callback when file selected
+ * - file: Currently selected file object
+ * - helperText: Instructions text
+ */
+
+import React from 'react';
 import { Upload } from 'lucide-react';
 
 const FileUploader = ({ id = "file-upload", label, accept = ".pdf,.doc,.docx,.jpg,.jpeg,.png", onChange, file, helperText = "PDF, DOC, JPG up to 10MB" }) => {

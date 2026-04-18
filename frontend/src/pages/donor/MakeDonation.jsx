@@ -1,4 +1,25 @@
-﻿import { useState } from 'react';
+/**
+ * MAKE DONATION PAGE
+ * 
+ * File Purpose: Multi-step donation form for donors
+ * Used for: Processing donations to specific welfare requests or general donations
+ * 
+ * Features:
+ * - Step 1: Select amount (preset or custom)
+ * - Step 2: Choose allocation (specific request or general)
+ * - Step 3: Select payment method (Online or Bank Transfer)
+ * - Step 4: Upload receipt/proof (for bank transfers)
+ * - Confirmation and success message
+ * 
+ * URL parameters:
+ * - requestId: Pre-select welfare request to fund
+ * - amount: Pre-fill donation amount
+ * - description: Pre-fill request description
+ * 
+ * Flow: Select amount → Choose request/general → Payment method → Upload proof (if needed) → Confirm → Submit
+ */
+
+import { useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -29,6 +50,53 @@ const MakeDonation = () => {
   const [allocation, setAllocation] = useState(requestId ? 'specific' : 'general');
   const [paymentMethod, setPaymentMethod] = useState('Online');
   const [receiptFile, setReceiptFile] = useState(null);
+  const receiptRef = useRef();
+
+  const handlePrintReceipt = () => {
+    const printContent = receiptRef.current.innerHTML;
+    const windowPrint = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
+    windowPrint.document.write(`
+      <html>
+        <head>
+          <title>Donation Receipt - Eduzone</title>
+          <style>
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1e293b; }
+            .receipt-card { border: 2px solid #e2e8f0; padding: 40px; border-radius: 20px; max-width: 600px; margin: auto; }
+            .header { text-align: center; border-bottom: 2px solid #3b82f6; pb: 20px; margin-bottom: 30px; }
+            .header h1 { color: #1e3a8a; margin: 0; font-size: 28px; }
+            .details { margin-bottom: 30px; }
+            .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+            .label { font-weight: bold; color: #64748b; text-transform: uppercase; font-size: 12px; }
+            .value { font-weight: 800; }
+            .amount-box { background: #eff6ff; padding: 20px; text-align: center; border-radius: 12px; margin: 20px 0; border: 1px solid #bfdbfe; }
+            .amount { font-size: 32px; font-weight: 900; color: #2563eb; }
+            .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #94a3b8; }
+            .seal { border: 3px solid #10b981; color: #10b981; display: inline-block; padding: 10px 20px; border-radius: 50%; font-weight: 900; transform: rotate(-15deg); margin-top: 20px; opacity: 0.6; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-card">
+            ${printContent}
+            <div style="text-align: center;">
+              <div class="seal">VERIFIED</div>
+            </div>
+            <div class="footer">
+              <p>This is an electronically generated receipt for Eduzone Welfare System.</p>
+              <p>&copy; 2024 Hatton Zonal Education Office</p>
+            </div>
+          </div>
+          <script>
+            setTimeout(() => {
+              window.print();
+              window.close();
+            }, 500);
+          </script>
+        </body>
+      </html>
+    `);
+    windowPrint.document.close();
+    windowPrint.focus();
+  };
 
   const PRESET_AMOUNTS = [1000, 2500, 5000, 10000];
 
@@ -57,7 +125,10 @@ const MakeDonation = () => {
       formData.append('description', paramDesc || 'General Donation');
       formData.append('allocation', allocation);
       formData.append('isAnonymous', isAnonymous);
-      formData.append('paymentMethod', paymentMethod);
+      
+      const standardizedPaymentMethod = paymentMethod === 'Online' ? 'ONLINE' : 'BANK_TRANSFER';
+      formData.append('paymentMethod', standardizedPaymentMethod);
+
       if (requestId) {
         formData.append('welfareRequestId', requestId);
       }
@@ -98,7 +169,42 @@ const MakeDonation = () => {
           </div>
           <div className="flex gap-4 mt-8">
             <Button variant="outline" onClick={() => window.location.href = '/donor/browse-requests'}>Browse More Requests</Button>
-            <Button className="bg-blue-600 hover:bg-blue-700">Download Receipt</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700" onClick={handlePrintReceipt}>Download Receipt</Button>
+          </div>
+
+          {/* Hidden Receipt for Printing */}
+          <div className="hidden">
+            <div ref={receiptRef}>
+              <div className="header">
+                <img src="/logo.png" alt="Eduzone" style={{ height: '40px', marginBottom: '10px' }} />
+                <h1>OFFICIAL DONATION RECEIPT</h1>
+              </div>
+              <div className="details">
+                <div className="row">
+                  <span className="label">Reference ID</span>
+                  <span className="value">{searchParams.get('ref') || `EDZ-${Date.now()}`}</span>
+                </div>
+                <div className="row">
+                  <span className="label">Date</span>
+                  <span className="value">{new Date().toLocaleDateString()}</span>
+                </div>
+                <div className="row">
+                  <span className="label">Donor Name</span>
+                  <span className="value">{document.getElementById('anonymous')?.checked ? 'Anonymous' : 'Verified Donor'}</span>
+                </div>
+                <div className="row">
+                  <span className="label">Allocation</span>
+                  <span className="value">{paramSchool || 'General Welfare Fund'}</span>
+                </div>
+              </div>
+              <div className="amount-box">
+                <p className="label">Total Amount Contributed</p>
+                <p className="amount">LKR {Number(amount === 'custom' ? customAmount : amount).toLocaleString()}</p>
+              </div>
+              <p style={{ fontSize: '14px', textAlign: 'center', fontStyle: 'italic', marginTop: '20px' }}>
+                Thank you for your generous contribution towards student education in Hatton Zone.
+              </p>
+            </div>
           </div>
         </div>
       </DashboardLayout>

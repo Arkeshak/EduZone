@@ -1,4 +1,20 @@
-﻿import { useState, useEffect } from 'react';
+﻿/**
+ * DONOR DASHBOARD PAGE
+ * 
+ * File Purpose: Main landing page for donors
+ * Used for: View donation history, impact statistics, quick donate link
+ * 
+ * Features:
+ * - Statistics: Total contributed amount, number of students impacted
+ * - Recent donation history (last 5)
+ * - Quick action button to make new donation
+ * - Visual cards showing donation breakdown
+ * 
+ * Data: Fetches from /donations endpoint showing donor's contributions
+ * Tracking: Calculates students impacted by counting unique welfare requests funded
+ */
+
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Heart, TrendingUp } from 'lucide-react';

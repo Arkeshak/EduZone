@@ -1,4 +1,27 @@
-﻿import { useState } from 'react';
+﻿/**
+ * DASHBOARD LAYOUT COMPONENT
+ * 
+ * File Purpose: Wrapper layout for all role-based dashboards
+ * Used for: Sidebar navigation, header, role-based menu items
+ * 
+ * Features:
+ * - Responsive sidebar (collapsible on mobile)
+ * - Dynamic navigation based on user role (Teacher/Principal/ZEO/Donor)
+ * - Header with user info and logout button
+ * - Breadcrumb/active page indicator
+ * - Mobile hamburger menu
+ * 
+ * Props:
+ * - children: Page content to display
+ * 
+ * Navigation items vary by role:
+ * - Teacher: Dashboard, Requests, Resources, Circulars, Profile
+ * - Principal: Dashboard, Approvals, Reports, Funds, Circulars, Profile
+ * - ZEO: Dashboard, Users, Approvals, Donations, Analytics, Circulars
+ * - Donor: Dashboard, Requests, Donations, Profile
+ */
+
+import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import {

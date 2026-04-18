@@ -1,3 +1,21 @@
+/**
+ * SCHOOL CONTROLLER
+ * 
+ * File Purpose: Manages school-related operations
+ * Used for: CRUD operations on schools, staff management, school queries
+ * 
+ * Key functions:
+ * - getSchools() - Fetch all schools (public)
+ * - getSchoolUsers() - Get all teachers and principals across schools (ZEO)
+ * - getSchoolById() - Get specific school details
+ * - createSchool() - Add new school (ZEO)
+ * - updateSchool() - Update school info (principal/ZEO)
+ * - deleteSchool() - Remove school (ZEO)
+ * - getSchoolStats() - School statistics (welfare, donations, transfers)
+ * 
+ * Security: Public read operations, Create/Update/Delete require ZEO role
+ */
+
 const { School, User, Teacher, Principal, Subject } = require('../models');
 
 // @desc    Get all schools

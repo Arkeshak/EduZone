@@ -1,3 +1,20 @@
+/**
+ * FILE UPLOAD MIDDLEWARE
+ * 
+ * File Purpose: Configures file upload handling with multer
+ * Used for: Teachers uploading resources, donors uploading receipts, circulars with attachments
+ * 
+ * Configuration:
+ * - Storage: Disk storage in 'uploads/' folder
+ * - Filename: Timestamp + original name (prevents collisions)
+ * - File types: JPEG, PNG, PDF only
+ * - Size limit: 5MB per file
+ * - Validation: MIME type and extension checking
+ * 
+ * Usage: router.post('/upload', upload.single('file'), controller.function)
+ * Result: req.file contains {filename, path, originalname, size, mimetype}
+ */
+
 const multer = require('multer');
 const path = require('path');
 

@@ -1,4 +1,23 @@
-﻿import { Navigate } from 'react-router-dom';
+﻿/**
+ * PROTECTED ROUTE COMPONENT
+ * 
+ * File Purpose: Middleware component that guards routes requiring authentication
+ * Used for: Preventing unauthorized access to protected pages
+ * 
+ * Functionality:
+ * - Checks if user is authenticated (logged in)
+ * - Shows loading spinner while checking auth status
+ * - Redirects to login if not authenticated
+ * - Checks if user has required role
+ * - Redirects to /unauthorized if user lacks permission
+ * 
+ * Usage:
+ * <ProtectedRoute allowedRoles={['TEACHER', 'PRINCIPAL']}>
+ *   <TeacherDashboard />
+ * </ProtectedRoute>
+ */
+
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
