@@ -13,12 +13,17 @@ const ReceivedFunds = () => {
         fetchTransfers();
     }, []);
 
+    /**
+     * DATA FETCHING: Fund Transfers
+     * Purpose: Retrieves records of all financial transfers from ZEO to this school.
+     * Action: Calls GET /api/transfers and stores the results.
+     */
     const fetchTransfers = async () => {
         try {
             const { data } = await client.get('/transfers');
             setTransfers(data);
         } catch (error) {
-            console.error(error);
+            console.error('Fetch Transfers Error:', error);
         } finally {
             setLoading(false);
         }
@@ -76,6 +81,11 @@ const ReceivedFunds = () => {
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">ZEO Transfer</p>
                                         </div>
 
+                                        {/* 
+                                          TRANSFER PROOF (IF AVAILABLE)
+                                          Purpose: Allows principals to verify the bank transfer via the uploaded receipt from ZEO.
+                                          Action: Opens the proof image/PDF in a new window.
+                                        */}
                                         {transfer.proofUrl && (
                                             <button
                                                 onClick={() => window.open(`http://localhost:5000/${transfer.proofUrl}`, '_blank')}

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DONOR DASHBOARD PAGE
  * 
  * File Purpose: Main landing page for donors
@@ -25,7 +25,25 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import quickActionIcon from '@/assets/quick_action_donate.png';
 import emptyStateIcon from '@/assets/empty_state_donation.png';
 
+/**
+ * DONOR DASHBOARD PAGE
+ * 
+ * File Purpose: Immersive hub for donors to track their contributions and impact.
+ * Features:
+ * - Real-time financial metrics: Total LKR Contributed.
+ * - Social impact metrics: Count of unique students stabilized.
+ * - Quick Action: Entry point to Browse Requests.
+ * - History: Chronological feed of latest financial contributions with verification status.
+ * 
+ * Data Flow: Fetches /donations and aggregates unique requestId counts for impact tracking.
+ */
+
 const DonorDashboard = () => {
+  /**
+   * STATE MANAGEMENT
+   * Purpose: Tracks donor financial and impact metrics.
+   * History: Cached array of the donor's 5 most recent contributions.
+   */
   const [stats, setStats] = useState({
     totalContributed: 0,
     studentsImpacted: 0,
@@ -33,6 +51,11 @@ const DonorDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
+  /**
+   * DATA INITIALIZATION EFFECT
+   * Purpose: Calculates dashboard metrics on mount.
+   * Action: GET /donations and performs frontend aggregation.
+   */
   useEffect(() => {
     fetchStats();
   }, []);
@@ -45,8 +68,8 @@ const DonorDashboard = () => {
       // or just calculate from all public donations for demo purposes if session not ready.
       // Assuming /donations returns MY donations
 
-      const total = donations.reduce((sum, d) => sum + (d.amount || 0), 0);
-      const impacted = new Set(donations.map(d => d.requestId)).size; // Unique requests supported
+      const total = donations.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+      const impacted = new Set(donations.map(d => d.requestId).filter(id => id)).size; // Unique requests supported
 
       setStats({
         totalContributed: total,

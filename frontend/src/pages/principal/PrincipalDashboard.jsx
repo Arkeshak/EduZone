@@ -32,14 +32,27 @@ import { useAuth } from '@/context/AuthContext';
  */
 const PrincipalDashboard = () => {
   const { user } = useAuth();
+  
+  /**
+   * STATE MANAGEMENT
+   * Purpose: Tracks school-specific metrics and recent activity for the principal's overview.
+   * PendingApprovals: Count of welfare requests awaiting Principal sign-off.
+   * MonthlyReports: Status indicator for academic reporting duty.
+   * RecentActivity: Feed of latest welfare-related events.
+   */
   const [stats, setStats] = useState({
     pendingApprovals: 0,
     monthlyReports: 'Pending',
-    totalStudents: 1250, // Should come from API eventually
+    totalStudents: 1250, // Note: Future mapping to School model metadata
     recentActivity: []
   });
   const [loading, setLoading] = useState(true);
 
+  /**
+   * DASHBOARD DATA INITIALIZATION
+   * Purpose: Aggregates metrics from various endpoints to populate the dashboard.
+   * Action: GET /welfare to count locally pending items and list recent activity.
+   */
   useEffect(() => {
     fetchStats();
   }, []);
@@ -85,8 +98,8 @@ const PrincipalDashboard = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold Tracking-tight mb-2">Welcome, {user?.name}</h1>
-          <p className="text-gray-500">Overview of {user?.school} welfare and reporting status.</p>
+          <h1 className="text-3xl font-bold Tracking-tight mb-2">Welcome, {user?.fullName || user?.name}</h1>
+          <p className="text-gray-500">Overview of {user?.school?.name || 'your school'} welfare and reporting status.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

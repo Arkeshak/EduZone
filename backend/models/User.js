@@ -79,6 +79,20 @@ const User = db.define('User', {
         type: DataTypes.STRING,
         allowNull: true,
         field: 'refresh_token'
+    },
+    profilePicture: {
+        type: DataTypes.STRING(500),
+        allowNull: true,
+        field: 'profile_picture'
+    },
+    phoneNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        field: 'phone_number'
+    },
+    address: {
+        type: DataTypes.TEXT,
+        allowNull: true
     }
 }, {
     tableName: 'users',

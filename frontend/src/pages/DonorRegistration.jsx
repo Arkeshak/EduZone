@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DONOR REGISTRATION PAGE  
  * 
  * File Purpose: Allow donors to create new accounts
@@ -42,15 +42,28 @@ const DonorRegistration = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  /**
+   * REGISTRATION FORM HANDLER
+   * Purpose: Collects donor details and initiates the account creation process.
+   * Action: 
+   * 1. Validates password equality and strength.
+   * 2. Calls backend registration API.
+   * 3. Switches the UI to the 'Verification' screen on success.
+   * Validation: 
+   * - Checks if passwords match.
+   * - Uses a helper utility for password complexity.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
+    // Pre-submission Validation: Password matching
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
+    // Pre-submission Validation: Password complexity (uppercase, numbers, etc)
     const passwordError = validatePassword(formData.password);
     if (passwordError) {
       setError(passwordError);
@@ -60,11 +73,13 @@ const DonorRegistration = () => {
     setLoading(true);
 
     try {
+      // API call to create unverified donor account
       await authApi.registerDonor({
         name: formData.name,
         email: formData.email,
         password: formData.password
       });
+      // Toggle to verification code entry screen
       setIsVerifying(true);
       setError('');
     } catch (err) {
@@ -74,6 +89,14 @@ const DonorRegistration = () => {
     }
   };
 
+  /**
+   * EMAIL VERIFICATION HANDLER
+   * Purpose: Validates the 6-digit code sent to the user's email.
+   * Action:
+   * 1. Submits email and code to the verification endpoint.
+   * 2. Shows the success screen and redirects to login.
+   * Validation: Displays error if code is incorrect or expired.
+   */
   const handleVerify = async (e) => {
     e.preventDefault();
     setError('');
@@ -85,6 +108,7 @@ const DonorRegistration = () => {
         code: verificationCode
       });
       setSuccess(true);
+      // Brief delay to allow user to see the success message
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Verification failed. Please check your code.');
@@ -93,6 +117,10 @@ const DonorRegistration = () => {
     }
   };
 
+  // SUCCESS SCREEN
+  // Purpose: Shown after successful email verification
+  // Elements: Success check icon, confirmation message
+  // Action: Automatically redirects user to login page after 2 seconds
   if (success) {
     return (
       <div className="min-h-screen relative flex items-center justify-center p-4">
@@ -113,6 +141,10 @@ const DonorRegistration = () => {
     );
   }
 
+  // VERIFICATION SCREEN
+  // Purpose: Shown after user submits registration form
+  // Action: Expects user to enter the 6-digit code from their email
+  // Elements: Large numeric input for verification code
   if (isVerifying) {
     return (
       <div className="min-h-screen relative flex items-center justify-center p-4">
@@ -137,6 +169,12 @@ const DonorRegistration = () => {
           )}
 
           <form onSubmit={handleVerify} className="space-y-6">
+            {/* 
+              VERIFICATION CODE INPUT
+              Purpose: Collect the unique code sent to the email address
+              Action: Updates verificationCode state
+              Validation: Maximum 6 characters
+            */}
             <input
               type="text"
               required

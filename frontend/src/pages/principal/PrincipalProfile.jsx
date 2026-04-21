@@ -8,15 +8,20 @@ import { User, Building, Phone, Mail, Save, Edit, Landmark, ShieldCheck, Graduat
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import client from '@/services/apiClient';
+import ProfilePictureUpload from '@/components/ProfilePictureUpload';
 
 const PrincipalProfile = () => {
-  const { user, setUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingBank, setIsEditingBank] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingBank, setSavingBank] = useState(false);
+  const [profilePicture, setProfilePicture] = useState(null);
 
   const [formData, setFormData] = useState({
     fullName: '',
+    email: '',
     contactNumber: '',
     schoolName: '',
     bankName: '',
@@ -29,17 +34,26 @@ const PrincipalProfile = () => {
     fetchProfileData();
   }, []);
 
+  /**
+   * DATA FETCHING: Dual Profile Sync
+   * Purpose: Aggregates personal identity and institutional bank data.
+   * Action: 
+   * 1. Fetches current user object from /auth/me.
+   * 2. Fetches school-specific metadata from /schools/my-school.
+   * 3. Merges data into local formData state.
+   */
   const fetchProfileData = async () => {
     try {
       setLoading(true);
-      // 1. Fetch User Data (More comprehensive than the context user)
+      // Step 1: User Identity Details
       const { data: userData } = await client.get('/auth/me');
       
-      // 2. Fetch School Details
+      // Step 2: Educational Institution Details (includes bank info)
       const { data: schoolData } = await client.get('/schools/my-school');
 
       setFormData({
         fullName: userData.fullName || '',
+        email: userData.email || '',
         contactNumber: userData.profile?.contactNumber || '',
         schoolName: schoolData.name || 'Unknown School',
         bankName: schoolData.bankName || '',
@@ -47,6 +61,7 @@ const PrincipalProfile = () => {
         accountNumber: schoolData.accountNumber || '',
         accountHolder: schoolData.accountHolder || ''
       });
+      setProfilePicture(userData.profilePicture || null);
     } catch (error) {
       console.error("Failed to fetch profile details", error);
       toast.error("Could not load full profile details");
@@ -55,33 +70,52 @@ const PrincipalProfile = () => {
     }
   };
 
+  /**
+   * PERSONAL PROFILE UPDATE
+   * Purpose: Persists name and contact changes to the user's account.
+   * Action: Sends data via PUT to /auth/profile.
+   */
   const handleSave = async () => {
     setSaving(true);
     try {
-      // 1. Update Personal Profile (User + Role Profile)
       await client.put('/auth/profile', {
         fullName: formData.fullName,
         contactNumber: formData.contactNumber
       });
+      setIsEditing(false);
+      toast.success("Personal profile updated!");
+      // Step: Force-refresh global auth context to update header values
+      await refreshUser();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
+  };
 
-      // 2. Update School Bank Details (Standardized fields)
+  /**
+   * INSTITUTIONAL BANK UPDATE
+   * Purpose: Configures where donor funds should be sent for this school.
+   * Action: PUT request to /schools/my-school.
+   * Validation: Backend verifies current user is authorized to modify school data.
+   */
+  const handleSaveBank = async () => {
+    setSavingBank(true);
+    try {
       await client.put('/schools/my-school', {
         bankName: formData.bankName,
         bankBranch: formData.bankBranch,
         accountNumber: formData.accountNumber,
         accountHolder: formData.accountHolder
       });
-
-      // Update local context for the name display
-      setUser(prev => ({ ...prev, name: formData.fullName }));
-      
-      setIsEditing(false);
-      toast.success("Profile and School details synchronized!");
+      setIsEditingBank(false);
+      toast.success("Bank details updated successfully!");
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Failed to update details");
+      toast.error(error.response?.data?.message || "Failed to update bank details");
     } finally {
-      setSaving(false);
+      setSavingBank(false);
     }
   };
 
@@ -130,12 +164,16 @@ const PrincipalProfile = () => {
                     <CardHeader className="bg-slate-900 text-white p-8">
                         <div className="flex items-center gap-6">
                             <div className="relative">
-                                <div className="w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-400 rounded-3xl flex items-center justify-center shadow-2xl">
-                                    <User className="w-12 h-12 text-white" />
-                                </div>
-                                <div className="absolute -bottom-2 -right-2 bg-green-500 border-4 border-slate-900 w-8 h-8 rounded-full flex items-center justify-center">
-                                    <ShieldCheck className="w-4 h-4 text-white" />
-                                </div>
+                                <ProfilePictureUpload
+                                  currentPicture={profilePicture}
+                                  onUploadSuccess={(url) => {
+                                    setProfilePicture(url);
+                                    refreshUser();
+                                  }}
+                                  size="lg"
+                                  shape="rounded"
+                                  editable={isEditing}
+                                />
                             </div>
                             <div>
                                 <CardTitle className="text-2xl font-black tracking-tight">
@@ -183,7 +221,7 @@ const PrincipalProfile = () => {
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Email Address</label>
                                 <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                                     <Mail className="w-5 h-5 text-blue-600" />
-                                    <span className="font-bold text-slate-800">{user?.email}</span>
+                                    <span className="font-bold text-slate-800">{formData.email || 'Loading...'}</span>
                                 </div>
                             </div>
                         </div>
@@ -193,7 +231,8 @@ const PrincipalProfile = () => {
                 {/* Bank Account Section */}
                 <Card className="border-none shadow-2xl shadow-blue-900/5 bg-gradient-to-br from-white to-slate-50/50 overflow-hidden">
                     <CardHeader className="p-8 border-b border-slate-100">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
                             <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
                                 <Landmark className="w-5 h-5" />
                             </div>
@@ -201,13 +240,29 @@ const PrincipalProfile = () => {
                                 <CardTitle className="text-xl font-black text-slate-900 uppercase tracking-tight">Institutional Fin-Ops</CardTitle>
                                 <CardDescription className="font-medium">School Welfare Bank Account Details for Fund Disbursement</CardDescription>
                             </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => isEditingBank ? handleSaveBank() : setIsEditingBank(true)}
+                            disabled={savingBank}
+                            className={`${isEditingBank ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} text-white font-bold px-5`}
+                          >
+                            {savingBank ? (
+                              <div className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
+                            ) : isEditingBank ? (
+                              <Save className="w-3 h-3 mr-2" />
+                            ) : (
+                              <Edit className="w-3 h-3 mr-2" />
+                            )}
+                            {savingBank ? 'Saving...' : isEditingBank ? 'Save Changes' : 'Edit'}
+                          </Button>
                         </div>
                     </CardHeader>
                     <CardContent className="p-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-3">
                                 <label className="text-xs font-bold text-slate-500 uppercase">Bank Provider</label>
-                                {isEditing ? (
+                                {isEditingBank ? (
                                     <Input value={formData.bankName} onChange={(e) => setFormData({ ...formData, bankName: e.target.value })} className="rounded-xl font-bold" />
                                 ) : (
                                     <div className="p-4 bg-white rounded-2xl border shadow-sm font-black text-slate-800">{formData.bankName || 'NOT SPECIFIED'}</div>
@@ -215,7 +270,7 @@ const PrincipalProfile = () => {
                             </div>
                             <div className="space-y-3">
                                 <label className="text-xs font-bold text-slate-500 uppercase">Branch Location</label>
-                                {isEditing ? (
+                                {isEditingBank ? (
                                     <Input value={formData.bankBranch} onChange={(e) => setFormData({ ...formData, bankBranch: e.target.value })} className="rounded-xl font-bold" />
                                 ) : (
                                     <div className="p-4 bg-white rounded-2xl border shadow-sm font-black text-slate-800">{formData.bankBranch || 'NOT SPECIFIED'}</div>
@@ -223,7 +278,7 @@ const PrincipalProfile = () => {
                             </div>
                             <div className="space-y-3">
                                 <label className="text-xs font-bold text-slate-500 uppercase">Account Number</label>
-                                {isEditing ? (
+                                {isEditingBank ? (
                                     <Input value={formData.accountNumber} onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })} className="rounded-xl font-black font-mono text-lg" />
                                 ) : (
                                     <div className="p-4 bg-blue-600 rounded-2xl border shadow-lg font-black text-white font-mono text-xl tracking-wider">{formData.accountNumber || 'NOT SPECIFIED'}</div>
@@ -231,7 +286,7 @@ const PrincipalProfile = () => {
                             </div>
                             <div className="space-y-3">
                                 <label className="text-xs font-bold text-slate-500 uppercase">Account Title (Holder)</label>
-                                {isEditing ? (
+                                {isEditingBank ? (
                                     <Input value={formData.accountHolder} onChange={(e) => setFormData({ ...formData, accountHolder: e.target.value })} className="rounded-xl font-bold" />
                                 ) : (
                                     <div className="p-4 bg-white rounded-2xl border shadow-sm font-black text-slate-800">{formData.accountHolder || 'NOT SPECIFIED'}</div>

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * LOGIN PAGE
  * 
  * File Purpose: Unified login interface supporting multiple roles
@@ -114,33 +114,44 @@ const Login = () => {
   const IconComponent = currentConfig.icon;
 
 
+  /**
+   * LOGIN SUBMISSION HANDLER
+   * Purpose: Processes user credentials and manages authentication flow.
+   * Action:
+   * 1. Prevents default form submission.
+   * 2. Calls backend API via authService.
+   * 3. Stores JWT token and user details in AuthContext.
+   * 4. Decodes the token to determine user role.
+   * 5. Redirects the user to their role-specific dashboard.
+   * Validation: Displays error messages on incorrect credentials or server issues.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      // Send login request to server
       const data = await authApi.login(formData);
       const token = data.token || data.accessToken || data;
 
+      // Update global application state with the new token
       login(token);
 
-      // Decode role to navigate
+      // Extract user role from token payload (Base64 decoded)
       const payload = JSON.parse(atob(token.split('.')[1]));
       const userRole = payload.role?.toLowerCase();
 
-      // Basic validation to ensure they logged into the correct portal
-      if (roleParam && roleParam !== userRole) {
-        // You might allow this or block it.
-      }
-
+      // Redirect user based on their specific role (teacher, principal, zeo, or donor)
       navigate(`/${userRole}/dashboard`);
 
     } catch (err) {
-      console.error(err);
+      console.error('Login Error:', err);
+      // Capture specific error message from server or fallback to default
       const errorMessage = err.response?.data?.message || err.message || 'Login failed. Please try again.';
       setError(errorMessage);
     } finally {
+      // Ensure loading state is reset even if request fails
       setLoading(false);
     }
   };

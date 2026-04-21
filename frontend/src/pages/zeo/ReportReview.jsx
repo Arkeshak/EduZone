@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { 
   Search, 
   Filter, 
@@ -20,12 +21,29 @@ import {
 import { toast } from 'sonner';
 import client from '@/services/apiClient';
 
+/**
+ * REPORT REVIEW PAGE
+ * 
+ * File Purpose: Administrative oversight for monitoring regional academic performance.
+ * Features:
+ * - Monthly Metrics: Tracking student/staff attendance and dropout rates.
+ * - Discovery: Filtering reports by school name and month.
+ * - Data Export: CSV generation for off-system analysis.
+ * - Evaluation: Individual report deeper-dive with Principal remarks.
+ */
+
 const ReportReview = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
+  const [selectedReport, setSelectedReport] = useState(null);
 
+  /**
+   * DATA INITIALIZATION
+   * Purpose: Gathers all validated school performance reports for the zone.
+   * API: GET /reports
+   */
   useEffect(() => {
     fetchReports();
   }, []);
@@ -33,7 +51,8 @@ const ReportReview = () => {
   const fetchReports = async () => {
     try {
       const { data } = await client.get('/reports');
-      setReports(data || []);
+      const reportsList = data.success ? data.data : (Array.isArray(data) ? data : []);
+      setReports(reportsList);
     } catch (error) {
       console.error("Failed to load reports", error);
       toast.error("Failed to load school reports");
@@ -48,6 +67,40 @@ const ReportReview = () => {
     return matchesSchool && matchesMonth;
   });
 
+  /**
+   * CSV EXPORT HANDLER
+   * Purpose: Facilitates offline analysis by converting filtered UI data into CSV.
+   * Logic: Standard String.join mapping with URI encoded Blob download.
+   */
+  const handleExportCSV = () => {
+    if (filteredReports.length === 0) {
+      toast.error("No reports to export");
+      return;
+    }
+
+    const headers = ['Reporting Month', 'School Name', 'Student Attendance (%)', 'Staff Attendance (%)', 'Dropouts'];
+    
+    const csvContent = [
+      headers.join(','),
+      ...filteredReports.map(r => {
+        const school = `"${(r.schoolName || 'Unknown School').replace(/"/g, '""')}"`;
+        return `${r.month},${school},${r.averageAttendance},${r.staffAttendance},${r.dropoutCount}`;
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `school_reports_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success("CSV exported successfully");
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -57,7 +110,11 @@ const ReportReview = () => {
             <p className="text-slate-500 text-sm font-medium">Review monthly metrics, attendance trends, and dropout statistics from regional schools.</p>
           </div>
           <div className="flex gap-2">
-             <Button variant="outline" className="font-bold text-xs uppercase tracking-widest h-10 border-slate-200">
+             <Button 
+               variant="outline" 
+               className="font-bold text-xs uppercase tracking-widest h-10 border-slate-200"
+               onClick={handleExportCSV}
+             >
                <Download className="w-3.5 h-3.5 mr-2" /> Export CSV
              </Button>
           </div>
@@ -164,7 +221,12 @@ const ReportReview = () => {
                          )}
                       </td>
                       <td className="px-6 py-5 text-right">
-                         <Button variant="ghost" size="sm" className="font-bold text-blue-600 hover:bg-blue-50">
+                         <Button 
+                           variant="ghost" 
+                           size="sm" 
+                           className="font-bold text-blue-600 hover:bg-blue-50"
+                           onClick={() => setSelectedReport(report)}
+                         >
                            Review <ChevronRight className="w-4 h-4 ml-1" />
                          </Button>
                       </td>
@@ -176,6 +238,63 @@ const ReportReview = () => {
           )}
         </div>
       </div>
+
+      <Dialog open={!!selectedReport} onOpenChange={(open) => { if(!open) setSelectedReport(null); }}>
+        <DialogContent className="sm:max-w-[500px]">
+          {selectedReport && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-xl font-black">Monthly Evaluation Report</DialogTitle>
+                <DialogDescription>
+                  Detailed review for <span className="font-bold text-slate-900">{selectedReport.schoolName || 'Unknown'}</span> 
+                  {' '}for the month of <b>{selectedReport.month}</b>.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="py-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Student Attendance</p>
+                    <p className={`text-2xl font-black ${parseFloat(selectedReport.averageAttendance) >= 90 ? 'text-green-600' : 'text-orange-500'}`}>
+                      {selectedReport.averageAttendance}%
+                    </p>
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Staff Attendance</p>
+                    <p className="text-2xl font-black text-slate-700">
+                      {selectedReport.staffAttendance}%
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-bold text-red-900">Reported Dropouts</h4>
+                    <p className="text-xs font-medium text-red-700/80">Students who left in this month</p>
+                  </div>
+                  <div className="text-2xl font-black text-red-600">
+                    <AlertCircle className="inline w-5 h-5 mr-1 -mt-1" />
+                    {selectedReport.dropoutCount}
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <h4 className="text-sm font-bold text-slate-900 mb-2">Principal's Remarks</h4>
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm text-sm text-slate-600 italic">
+                    {selectedReport.remarks ? `"${selectedReport.remarks}"` : "No additional remarks were provided for this month's report."}
+                  </div>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button onClick={() => setSelectedReport(null)} className="w-full font-bold">
+                  Acknowledge & Close
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

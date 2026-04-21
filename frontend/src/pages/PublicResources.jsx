@@ -363,7 +363,7 @@ const ResourceCard = ({ resource }) => (
             <div className="text-xs text-slate-400">
                 By <span className="font-medium text-slate-600">{resource.teacherName || 'Unknown Teacher'}</span>
             </div>
-            <a href={resource.fileUrl} target="_blank" rel="noopener noreferrer">
+            <a href={`${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '')}${resource.fileUrl}`} target="_blank" rel="noopener noreferrer">
                 <Button size="sm" variant="ghost" className="text-blue-600 hover:bg-blue-50 font-semibold h-8">
                     <Download className="w-4 h-4 mr-2" /> Download
                 </Button>

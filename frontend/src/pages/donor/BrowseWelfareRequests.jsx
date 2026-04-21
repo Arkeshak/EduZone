@@ -46,10 +46,18 @@ const BrowseWelfareRequests = () => {
 
   const CATEGORIES = ['All', 'Books', 'Uniforms', 'Fees', 'Medical', 'Transport', 'Equipment', 'Food', 'Hostel'];
 
+  /**
+   * DATA FETCHING: Published Welfare Requests
+   * Purpose: Retrieves all requests that have been approved by both Principal and ZEO.
+   * Action: 
+   * 1. Calls GET /api/welfare/published (a public endpoint).
+   * 2. Extracts the request array from the potentially paginated response.
+   * 3. Syncs both 'requests' (master list) and 'filteredRequests' (view list).
+   */
   const fetchRequests = async () => {
     try {
       const { data } = await client.get('/welfare/published');
-      // Backend returns { data: [], total: X, page: Y ... } if paginated
+      // Normalize: Extract data array regardless of backend pagination wrapper
       const requestList = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
       setRequests(requestList);
       setFilteredRequests(requestList);
@@ -68,9 +76,17 @@ const BrowseWelfareRequests = () => {
   }, []);
 
   // Handle Filtering
+  /**
+   * FILTERING LOGIC
+   * Purpose: Dynamically narrows down visible requests based on user search or category selection.
+   * Action: 
+   * 1. Performs case-insensitive search across student name, school, and description.
+   * 2. Applies category filter if any category other than 'All' is selected.
+   */
   useEffect(() => {
     let result = requests;
 
+    // Phase 1: Search Keyword Filtering
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
       result = result.filter(r => 
@@ -81,6 +97,7 @@ const BrowseWelfareRequests = () => {
       );
     }
 
+    // Phase 2: Category Dropdown Filtering
     if (selectedCategory !== 'All') {
       result = result.filter(r => r.category === selectedCategory);
     }
@@ -204,6 +221,10 @@ const BrowseWelfareRequests = () => {
                   </CardContent>
                   
                   <CardFooter className="p-6 pt-4 flex gap-3">
+                    {/* 
+                      DETAILS BUTTON
+                      Purpose: Opens the informative modal with full description and progress.
+                    */}
                     <Button 
                       variant="outline" 
                       className="flex-1 border-gray-200 hover:bg-gray-50 hover:border-blue-200"
@@ -211,6 +232,11 @@ const BrowseWelfareRequests = () => {
                     >
                       <Info className="w-4 h-4 mr-2" /> Details
                     </Button>
+                    {/* 
+                      DONATE BUTTON
+                      Purpose: Immediate path to the donation contribution form.
+                      Action: Navigates to /donor/make-donation with request metadata.
+                    */}
                     <Button
                       className="flex-1 bg-blue-600 hover:bg-blue-700 shadow-blue-200 hover:shadow-lg transition-all"
                       onClick={() => handleDonate(req)}

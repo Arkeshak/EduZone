@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ACTIVATE ACCOUNT PAGE
  * 
  * File Purpose: Complete donor account activation after email verification
@@ -34,13 +34,27 @@ const ActivateAccount = () => {
     const [success, setSuccess] = useState(false);
     const { token } = useParams();
 
+    /**
+     * ACCOUNT ACTIVATION HANDLER
+     * Purpose: Finalizes the registration process by setting the user's password.
+     * Action: 
+     * 1. Validates that both password fields are identical.
+     * 2. Validates password complexity using a shared utility.
+     * 3. Submits the activation token and password to the backend.
+     * Validation: 
+     * - Passwords must match.
+     * - Must meet security requirements (vetted in validatePassword).
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Step 1: Ensure both password entries match
         if (formData.password !== formData.confirmPassword) {
             toast.error('Passwords do not match');
             return;
         }
 
+        // Step 2: Ensure password meets security guidelines (length, characters)
         const passwordError = validatePassword(formData.password);
         if (passwordError) {
             toast.error(passwordError);
@@ -50,6 +64,7 @@ const ActivateAccount = () => {
         setLoading(true);
 
         try {
+            // Step 3: Trigger API activation with token from URL
             await authApi.activateAccount({ token, password: formData.password });
             setSuccess(true);
             toast.success('Account activated successfully');
@@ -60,6 +75,11 @@ const ActivateAccount = () => {
         }
     };
 
+    /* 
+      SUCCESS STATE UI
+      Purpose: Confirms to the user that their account is ready.
+      Elements: Success checkmark icon and a direct link to the login page.
+    */
     if (success) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -74,6 +94,10 @@ const ActivateAccount = () => {
                         </CardDescription>
                     </CardHeader>
                     <CardFooter>
+                        {/* 
+                          PROCEED TO LOGIN BUTTON
+                          Action: Navigates user back to the main login portal.
+                        */}
                         <Button className="w-full" asChild>
                             <Link to="/login">Proceed to Login</Link>
                         </Button>
@@ -94,6 +118,11 @@ const ActivateAccount = () => {
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {/* 
+                          PASSWORD FIELD
+                          Purpose: Allows user to define their account password.
+                          Validation: Mandatory field.
+                        */}
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none" htmlFor="password">
                                 New Password
@@ -109,6 +138,10 @@ const ActivateAccount = () => {
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     required
                                 />
+                                {/* 
+                                  VISIBILITY TOGGLE
+                                  Purpose: Shows/hides the password text for verification.
+                                */}
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
@@ -118,6 +151,11 @@ const ActivateAccount = () => {
                                 </button>
                             </div>
                         </div>
+
+                        {/* 
+                          CONFIRM PASSWORD FIELD
+                          Purpose: Ensures the user has not made a typo in their password.
+                        */}
                         <div className="space-y-2">
                             <label className="text-sm font-medium leading-none" htmlFor="confirmPassword">
                                 Confirm Password

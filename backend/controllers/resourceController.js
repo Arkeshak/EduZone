@@ -56,24 +56,40 @@ const uploadResource = async (req, res) => {
             status: 'PUBLISHED'
         });
 
-        res.status(201).json(resource);
+        res.status(201).json({
+            success: true,
+            data: resource
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
 // @desc    Get Public Resources
 const getPublicResources = async (req, res) => {
     try {
-        const { subjectId, grade, search } = req.query;
+        const { subjectId, subject, grade, search } = req.query;
         let whereClause = { status: 'PUBLISHED' };
 
         if (subjectId) whereClause.subjectId = subjectId;
+        
+        if (subject) {
+            const subjectRecord = await Subject.findOne({ where: { name: subject } });
+            if (subjectRecord) {
+                whereClause.subjectId = subjectRecord.id;
+            } else {
+                return res.json([]);
+            }
+        }
+
         if (grade && grade !== 'All') whereClause.grade = grade;
 
         if (search) {
             const { Op } = require('sequelize');
-            whereClause.title = { [Op.like]: `%${search}%` };
+            whereClause[Op.or] = [
+                { title: { [Op.like]: `%${search}%` } },
+                { description: { [Op.like]: `%${search}%` } }
+            ];
         }
 
         const resources = await Resource.findAll({
@@ -100,9 +116,12 @@ const getPublicResources = async (req, res) => {
             return json;
         });
 
-        res.json(formatted);
+        res.status(200).json({
+            success: true,
+            data: formatted
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -146,10 +165,12 @@ const getMyResources = async (req, res) => {
             return json;
         });
 
-        res.json(formatted);
+        res.status(200).json({
+            success: true,
+            data: formatted
+        });
     } catch (error) {
-
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -199,9 +220,13 @@ const updateResource = async (req, res) => {
         if (json.subject) json.subject = json.subject.name;
         if (json.teacher && json.teacher.user) json.teacherName = json.teacher.user.fullName;
 
-        res.json({ message: 'Resource updated', resource: json });
+        res.status(200).json({ 
+            success: true, 
+            message: 'Resource updated', 
+            resource: json 
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -217,9 +242,9 @@ const deleteResource = async (req, res) => {
         }
 
         await resource.destroy();
-        res.json({ message: 'Resource deleted successfully' });
+        res.status(200).json({ success: true, message: 'Resource deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Globe, X, Search, Info } from 'lucide-react';
 import { toast } from 'sonner';
-import client from '@/services/apiClient';
+import client, { API_BASE_URL } from '@/services/apiClient';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -14,9 +14,14 @@ import { Label } from '@/components/ui/label';
 import StatusBadge from '@/components/StatusBadge';
 
 /**
- * WelfareApproval Component (ZEO Portal)
- * Handles the final publishing of welfare requests to the Donor Portal.
- * Includes history tracking for published and rejected requests.
+ * ZEO WELFARE APPROVAL PAGE
+ * 
+ * File Purpose: Regional oversight for publishing vetted welfare requests to the public.
+ * Features:
+ * - Public Listing: Final 'PUBLISHED' status trigger for Donor Portal visibility.
+ * - Evidence Verification: Unified viewer for student hardship proof documents.
+ * - Multi-Tab History: Tracking Active, Dispatched (History), and Rejected submissions.
+ * - Contextual Rejections: Capturing official ZEO remarks for teacher feedback.
  */
 const WelfareApproval = () => {
   const [allRequests, setAllRequests] = useState([]);
@@ -30,6 +35,13 @@ const WelfareApproval = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [updating, setUpdating] = useState(false);
 
+  /**
+   * DATA INITIALIZATION
+   * Purpose: Syncs school registry and welfare requests from the zone.
+   * Action: 
+   * 1. Fetches all active schools for filtering (fetchSchools).
+   * 2. Retrieves regional welfare requests based on active school filter (fetchRequests).
+   */
   useEffect(() => {
     fetchSchools();
   }, []);
@@ -47,12 +59,20 @@ const WelfareApproval = () => {
     }
   };
 
+  /**
+   * DATA FETCHING: Request List
+   * Purpose: Retrieves welfare requests across all schools in the zone.
+   * Action:
+   * 1. Appends schoolId filter if one is selected in the UI.
+   * 2. Fetches matching records from /api/welfare.
+   * 3. Normalizes response to handle pagination object wrapper.
+   */
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const query = selectedSchool !== 'All' ? `?schoolId=${selectedSchool}` : '';
+      const query = selectedSchool !== 'All' ? `?schoolId=${selectedSchool}&limit=100` : '?limit=100';
       const { data } = await client.get(`/welfare${query}`);
-      // Handle paginated response: { data: [], total: X ... }
+      // Step: Extract array from data.data if paginated, else use data directly
       const requestList = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
       setAllRequests(requestList);
     } catch (error) {
@@ -63,12 +83,17 @@ const WelfareApproval = () => {
       setLoading(false);
     }
   };
-
+   /**
+   * PUBLISHING HANDLER
+   * Purpose: Finalizes approval and makes the request visible to the public (Donors).
+   * Action: Updates status to 'PUBLISHED'.
+   * Result: Request appears in 'Browse Welfare' for donors.
+   */
   const handlePublish = async (id) => {
     try {
       await client.patch(`/welfare/${id}/status`, { status: 'PUBLISHED' });
       toast.success(`Request published to Donor Portal!`);
-      fetchRequests();
+      fetchRequests(); // Refresh UI
     } catch (error) {
       toast.error("Failed to publish request");
     }
@@ -124,6 +149,10 @@ const WelfareApproval = () => {
         <StatusBadge status={request.status} />
       </CardHeader>
       <CardContent className="pb-4">
+        {/* 
+          FINANCIAL SUMMARY BLOCK
+          Elements: Target amount and submitting teacher identity.
+        */}
         <div className="bg-slate-50 p-3 rounded-md mb-3 flex justify-between items-center text-sm">
           <div>
             <span className="text-gray-500 block text-[10px] uppercase font-bold tracking-wider">Required Funds</span>
@@ -136,6 +165,7 @@ const WelfareApproval = () => {
         </div>
         <p className="text-gray-600 text-sm line-clamp-2 italic">"{request.description}"</p>
         
+        {/* Display rejection rationale if applicable */}
         {request.status === 'REJECTED' && request.approvals?.find(a => a.decision === 'REJECTED')?.remarks && (
           <div className="mt-3 p-2 bg-red-50 border border-red-100 rounded text-xs text-red-700 flex gap-2">
             <Info className="w-4 h-4 shrink-0" />
@@ -144,10 +174,24 @@ const WelfareApproval = () => {
         )}
       </CardContent>
       <CardFooter className="bg-gray-50/50 border-t py-3 flex justify-end space-x-3">
-        <Button variant="ghost" size="sm" onClick={() => window.open(request.evidenceUrl, '_blank')} disabled={!request.evidenceUrl}>
+        {/* 
+          EVIDENCE VIEWER
+          Purpose: Allows the ZEO to verify the need before publishing.
+        */}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => {
+            const url = `${API_BASE_URL}${request.evidenceUrl}`;
+            console.log('Opening evidence:', url);
+            window.open(url, '_blank');
+          }} 
+          disabled={!request.evidenceUrl}
+        >
           View Evidence
         </Button>
         {isPending && (
+          /* ACTION CONTROLS: Available for non-published requests */
           <>
             <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => openRejectModal(request.id)}>
               Reject

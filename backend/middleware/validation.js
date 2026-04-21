@@ -19,14 +19,16 @@ const handleValidationErrors = (req, res, next) => {
 
     // ✅ If validation found errors, return them immediately
     if (!errors.isEmpty()) {
+        const errorDetails = errors.array().map(err => ({
+            field: err.param,
+            message: err.msg,
+            value: err.value
+        }));
+        console.warn(`[Validation Failure] ${req.method} ${req.originalUrl}:`, JSON.stringify(errorDetails, null, 2));
         return res.status(400).json({
             success: false,
             message: 'Validation failed',
-            errors: errors.array().map(err => ({
-                field: err.param,           // Which field failed validation
-                message: err.msg,           // Error message to show user
-                value: err.value            // What user submitted
-            }))
+            errors: errorDetails
         });
     }
 
@@ -46,13 +48,13 @@ const handleValidationErrors = (req, res, next) => {
  */
 const validatePagination = [
     query('page')
-        .optional()
+        .optional({ checkFalsy: true })
         .isInt({ min: 1, max: 100000 })
         .withMessage('Page must be between 1 and 100000'),
     query('limit')
-        .optional()
-        .isInt({ min: 10, max: 500 })
-        .withMessage('Limit must be between 10 and 500'),
+        .optional({ checkFalsy: true })
+        .isInt({ min: 0, max: 500 })
+        .withMessage('Limit must be between 0 and 500'),
     handleValidationErrors
 ];
 
@@ -79,13 +81,13 @@ const validateWelfareRequest = [
     body('amountRequired')
         .notEmpty()
         .withMessage('Amount required is needed')
-        .isFloat({ min: 100, max: 10000000 })
-        .withMessage('Amount must be between 100 and 10000000'),
+        .isFloat({ min: 10, max: 10000000 })
+        .withMessage('Amount must be between 10 and 10000000'),
     body('category')
         .notEmpty()
         .withMessage('Category is required')
-        .isIn(['Supplies', 'Fees', 'Medical', 'Transport', 'Equipment', 'Hostel', 'Food', 'Books', 'Uniforms', 'Other'])
-        .withMessage('Invalid welfare category'),
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Category must be between 2 and 50 characters'),
     body('priority')
         .optional()
         .isIn(['LOW', 'MEDIUM', 'HIGH'])
@@ -95,6 +97,28 @@ const validateWelfareRequest = [
         .trim()
         .isLength({ max: 5 })
         .withMessage('Section format invalid'),
+    handleValidationErrors
+];
+
+// Welfare request UPDATE validation (partial - only editable fields required)
+const validateWelfareRequestUpdate = [
+    body('description')
+        .optional({ checkFalsy: true })
+        .trim()
+        .isLength({ min: 10, max: 1000 })
+        .withMessage('Description must be between 10 and 1000 characters'),
+    body('amountRequired')
+        .optional({ checkFalsy: true })
+        .isFloat({ min: 10, max: 10000000 })
+        .withMessage('Amount must be between 10 and 10000000'),
+    body('category')
+        .optional({ checkFalsy: true })
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Category must be between 2 and 50 characters'),
+    body('priority')
+        .optional()
+        .isIn(['LOW', 'MEDIUM', 'HIGH'])
+        .withMessage('Priority must be LOW, MEDIUM, or HIGH'),
     handleValidationErrors
 ];
 
@@ -184,11 +208,11 @@ const validateStaffCreation = [
         .isInt({ min: 1 })
         .withMessage('School ID must be a valid number'),
     body('subjects')
-        .optional()
+        .optional({ checkFalsy: true })
         .trim()
         .custom(value => {
-            // Only letters, commas, and spaces
-            return /^[a-zA-Z,\s]+$/.test(value);
+            // Allow letters, commas, spaces, ampersands, and parentheses
+            return /^[a-zA-Z,\s&()]+$/.test(value);
         })
         .withMessage('Subjects format invalid'),
     handleValidationErrors
@@ -313,17 +337,17 @@ const validateChangePassword = [
 // Profile update validation
 const validateProfileUpdate = [
     body('fullName')
-        .optional()
+        .optional({ checkFalsy: true })
         .trim()
         .isLength({ min: 2, max: 100 })
         .withMessage('Name must be between 2 and 100 characters'),
     body('organizationName')
-        .optional()
+        .optional({ checkFalsy: true })
         .trim()
         .isLength({ max: 100 })
         .withMessage('Organization name too long'),
     body('contactNumber')
-        .optional()
+        .optional({ checkFalsy: true })
         .trim()
         .matches(/^[0-9\-\+\(\)]+$/)
         .withMessage('Invalid phone number'),
@@ -335,6 +359,7 @@ module.exports = {
     validationRules: {
         pagination: () => validatePagination,
         welfareRequest: () => validateWelfareRequest,
+        welfareRequestUpdate: () => validateWelfareRequestUpdate,
         welfareStatusUpdate: () => validateWelfareStatusUpdate,
         welfareStatus: () => validateWelfareStatusUpdate,
         donation: () => validateDonation,
@@ -359,6 +384,7 @@ module.exports = {
     handleValidationErrors,
     validatePagination,
     validateWelfareRequest,
+    validateWelfareRequestUpdate,
     validateWelfareStatusUpdate,
     validateDonation,
     validateDonationVerification,

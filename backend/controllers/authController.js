@@ -428,19 +428,25 @@ const getMe = async (req, res) => {
             profile = await Teacher.findOne({
                 where: { userId: user.id },
                 include: [
-                    { model: School, as: 'school', attributes: ['id', 'name', 'division'] },
-                    { model: require('../models').Subject, as: 'subjects', attributes: ['name'] }
+                    { model: School, as: 'school', attributes: ['id', 'name', 'address', 'division'] },
+                    { model: require('../models').Subject, as: 'subjects', attributes: ['id', 'name'] }
                 ]
             });
             schoolInfo = profile?.school;
         } else if (user.role === 'PRINCIPAL') {
             profile = await Principal.findOne({
                 where: { userId: user.id },
-                include: [{ model: School, as: 'school', attributes: ['id', 'name', 'division'] }]
+                include: [{ model: School, as: 'school', attributes: ['id', 'name', 'address', 'division'] }]
             });
             schoolInfo = profile?.school;
         } else if (user.role === 'DONOR') {
             profile = await Donor.findOne({ where: { userId: user.id } });
+        } else if (user.role === 'ZEO') {
+            // Synthesis a profile object for ZEO to maintain frontend compatibility
+            profile = {
+                contactNumber: user.phoneNumber,
+                address: user.address
+            };
         }
 
         res.status(200).json({
@@ -701,7 +707,7 @@ const logoutUser = async (req, res) => {
  *          For donors, updates both User and Donor models.
  */
 const updateProfile = async (req, res) => {
-    const { fullName, organizationName, contactNumber } = req.body;
+    const { fullName, organizationName, contactNumber, address } = req.body;
     const { sequelize } = require('../models');
     const transaction = await sequelize.transaction();
 
@@ -714,6 +720,8 @@ const updateProfile = async (req, res) => {
 
         // Update User fields
         if (fullName) user.fullName = fullName;
+        if (contactNumber !== undefined) user.phoneNumber = contactNumber;
+        if (address !== undefined) user.address = address;
         await user.save({ transaction });
 
         // Update Role-specific profile
@@ -734,6 +742,7 @@ const updateProfile = async (req, res) => {
             const teacher = await Teacher.findOne({ where: { userId: user.id }, transaction });
             if (teacher) {
                 if (contactNumber !== undefined) teacher.contactNumber = contactNumber;
+                if (address !== undefined) teacher.address = address;
                 await teacher.save({ transaction });
             }
         }
@@ -756,6 +765,84 @@ const updateProfile = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Update Teacher Subjects (ZEO only)
+ * @route   PUT /api/auth/admin/teacher-subjects/:userId
+ * @access  Private (ZEO)
+ */
+const updateTeacherSubjects = async (req, res) => {
+    if (req.user.role !== 'ZEO') return res.status(403).json({ message: 'Not authorized' });
+
+    const { subjects } = req.body; // comma-separated string e.g. "English,Mathematics"
+    const { userId } = req.params;
+
+    try {
+        const { Teacher, Subject, TeacherSubject } = require('../models');
+        const teacher = await Teacher.findOne({ where: { userId } });
+        if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
+
+        // Clear existing subjects
+        await TeacherSubject.destroy({ where: { teacherId: teacher.id } });
+
+        // Assign new subjects
+        if (subjects && subjects.trim() !== '') {
+            const subjectList = subjects.split(',').map(s => s.trim()).filter(Boolean);
+            for (const subName of subjectList) {
+                const [subject] = await Subject.findOrCreate({ where: { name: subName } });
+                await TeacherSubject.create({ teacherId: teacher.id, subjectId: subject.id });
+            }
+        }
+
+        res.status(200).json({ success: true, message: 'Subjects updated successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+/**
+ * @desc    Upload Profile Picture
+ * @route   POST /api/auth/profile/picture
+ * @access  Private
+ */
+const uploadProfilePicture = async (req, res) => {
+    try {
+        console.log('[PROFILE_PICTURE_UPLOAD] Starting upload for user:', req.user?.id);
+        
+        if (!req.file) {
+            console.error('[PROFILE_PICTURE_UPLOAD] No file received in request');
+            return res.status(400).json({ success: false, message: 'No file uploaded.' });
+        }
+        
+        console.log('[PROFILE_PICTURE_UPLOAD] File received:', req.file.filename);
+
+        const user = await User.findByPk(req.user.id);
+        if (!user) {
+            console.error('[PROFILE_PICTURE_UPLOAD] User not found for ID:', req.user.id);
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const oldPicture = user.profilePicture;
+        user.profilePicture = `/uploads/${req.file.filename}`;
+        
+        console.log('[PROFILE_PICTURE_UPLOAD] Saving user profile_picture to:', user.profilePicture);
+        await user.save();
+        console.log('[PROFILE_PICTURE_UPLOAD] Save successful');
+
+        res.status(200).json({
+            success: true,
+            message: 'Profile picture updated',
+            profilePicture: user.profilePicture
+        });
+    } catch (error) {
+        console.error('[PROFILE_PICTURE_UPLOAD] EXCEPTION:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Internal Server Error during upload',
+            error: error.message 
+        });
+    }
+};
+
 module.exports = {
     registerDonor,
     verifyEmail,
@@ -769,5 +856,7 @@ module.exports = {
     activateAccount,
     refreshTokenEndpoint,
     logoutUser,
-    updateProfile
+    updateProfile,
+    updateTeacherSubjects,
+    uploadProfilePicture
 };

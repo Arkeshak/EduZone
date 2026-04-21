@@ -1,4 +1,4 @@
-﻿/**
+/**
  * RESET PASSWORD PAGE
  * 
  * File Purpose: Set new password using reset token from email
@@ -35,13 +35,25 @@ const ResetPassword = () => {
     const { token } = useParams();
     const navigate = useNavigate();
 
+    /**
+     * PASSWORD UPDATE HANDLER
+     * Purpose: Final step of recovery where the user defines their new password.
+     * Action: 
+     * 1. Validates password symmetry and strength.
+     * 2. Submits the token (from URL) and new password to the backend.
+     * 3. Redirects to a success view on completion.
+     * Validation: Ensures passwords match and meet minimum security criteria.
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Validation: Verify password confirmation
         if (formData.password !== formData.confirmPassword) {
             toast.error('Passwords do not match');
             return;
         }
 
+        // Validation: Check complexity (helper function)
         const passwordError = validatePassword(formData.password);
         if (passwordError) {
             toast.error(passwordError);
@@ -51,6 +63,7 @@ const ResetPassword = () => {
         setLoading(true);
 
         try {
+            // API call using the unique token extracted from the route params
             await authApi.resetPassword(token, formData.password);
 
             setLoading(false);
@@ -58,6 +71,7 @@ const ResetPassword = () => {
             toast.success('Password reset successfully');
         } catch (err) {
             setLoading(false);
+            console.error('Reset Error:', err);
             toast.error(err.response?.data?.message || 'Failed to reset password');
         }
     };

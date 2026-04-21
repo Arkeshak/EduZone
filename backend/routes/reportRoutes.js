@@ -15,11 +15,19 @@
 
 const express = require('express');
 const router = express.Router();
-const { submitReport, getReports, getMySchoolReports } = require('../controllers/reportController');
-const { protect } = require('../middleware/authMiddleware');
+const { 
+    submitReport, 
+    getReports, 
+    getMySchoolReports, 
+    getZeoAnalytics,
+    updateReport 
+} = require('../controllers/reportController');
+const { protect, authorize } = require('../middleware/authMiddleware');
 
-router.post('/', protect, submitReport);
+router.post('/', protect, authorize('PRINCIPAL'), submitReport);
 router.get('/', protect, getReports);
-router.get('/my-school', protect, getMySchoolReports);
+router.get('/my-school', protect, authorize('PRINCIPAL'), getMySchoolReports);
+router.get('/analytics', protect, authorize('ZEO'), getZeoAnalytics);
+router.put('/:id', protect, authorize('PRINCIPAL'), updateReport);
 
 module.exports = router;

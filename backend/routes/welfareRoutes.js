@@ -20,15 +20,16 @@ const express = require('express');
 const router = express.Router();
 const { createRequest, getRequests, updateStatus, getPublishedRequests, updateRequest, deleteRequest } = require('../controllers/welfareController');
 const { protect, authorize } = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 const { validate, validationRules } = require('../middleware/validation');
 const { asyncHandler } = require('../middleware/errorHandler');
 
 // ✅ Integrated with validation and error handling
-router.get('/published', validationRules.pagination(), validate, asyncHandler(getPublishedRequests)); // Public
-router.post('/', protect, authorize('TEACHER'), validationRules.welfareRequest(), validate, asyncHandler(createRequest));
-router.get('/', protect, validationRules.pagination(), validate, asyncHandler(getRequests));
+router.get('/published', validationRules.pagination(), asyncHandler(getPublishedRequests)); // Public
+router.post('/', protect, authorize('TEACHER'), upload.single('supportingDocument'), validationRules.welfareRequest(), validate, asyncHandler(createRequest));
+router.get('/', protect, validationRules.pagination(), asyncHandler(getRequests));
 router.patch('/:id/status', protect, authorize('PRINCIPAL', 'ZEO'), validationRules.welfareStatus(), validate, asyncHandler(updateStatus));
-router.put('/:id', protect, authorize('TEACHER'), validationRules.welfareRequest(), validate, asyncHandler(updateRequest));
+router.put('/:id', protect, authorize('TEACHER'), validationRules.welfareRequestUpdate(), validate, asyncHandler(updateRequest));
 router.delete('/:id', protect, authorize('TEACHER'), asyncHandler(deleteRequest));
 
 module.exports = router;

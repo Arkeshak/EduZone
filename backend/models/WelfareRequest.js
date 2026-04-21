@@ -58,7 +58,7 @@ const WelfareRequest = db.define('WelfareRequest', {
         field: 'school_id'
     },
     category: {
-        type: DataTypes.ENUM('Supplies', 'Fees', 'Medical', 'Transport', 'Equipment', 'Hostel', 'Food', 'Books', 'Uniforms', 'Other'),
+        type: DataTypes.STRING,
         allowNull: false
     },
     description: {

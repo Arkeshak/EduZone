@@ -123,20 +123,38 @@ export const AuthProvider = ({ children }) => {
    * 4. If invalid: Leave user logged out
    * 5. Set loading to false (done checking)
    */
-  useEffect(() => {
-    // ✅ Get token from localStorage
-    const token = getToken();
-
-    // ✅ If token exists AND hasn't expired, restore user session
-    if (token && isTokenValid()) {
-      const userInfo = getUserInfo();      // Decode token to get user data
-      const userRole = getUserRole();      // Extract role from token
-      setUser(userInfo);
-      setRole(userRole);
+  const refreshUser = async () => {
+    try {
+      const response = await client.get('/auth/me');
+      if (response.data) {
+        // Map fullName to name for backward compatibility
+        const userData = {
+          ...response.data,
+          name: response.data.fullName || response.data.name
+        };
+        setUser(userData);
+        return userData;
+      }
+    } catch (err) {
+      console.error('Failed to refresh user data:', err);
     }
+  };
 
-    // ✅ Finished checking, stop loading
-    setLoading(false);
+  useEffect(() => {
+    const initAuth = async () => {
+      const token = getToken();
+      if (token && isTokenValid()) {
+        const userInfo = getUserInfo();
+        const userRole = getUserRole();
+        setUser(userInfo);
+        setRole(userRole);
+        
+        // Background refresh to get fresh data (like profile picture)
+        await refreshUser();
+      }
+      setLoading(false);
+    };
+    initAuth();
   }, []);
 
   /**
@@ -190,7 +208,12 @@ export const AuthProvider = ({ children }) => {
     const userRole = getUserRole();
 
     // Update context state
-    setUser(userInfo);
+    // Map fullName to name for backward compatibility
+    const userData = {
+      ...userInfo,
+      name: userInfo.fullName || userInfo.name
+    };
+    setUser(userData);
     setRole(userRole);
   };
 
@@ -296,6 +319,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout: handleLogout,
+    refreshUser,
     isAuthenticated: !!user && !!role,
     isRefreshing,
   };

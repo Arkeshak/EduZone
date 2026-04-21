@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Edit, Trash2, Download, Search, Plus, FileText, AlertCircle, Upload } from 'lucide-react';
@@ -12,6 +12,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { GRADES, SUBJECTS } from '@/utils/subjects';
+
+/**
+ * MANAGE RESOURCES PAGE
+ * 
+ * File Purpose: Interface for teachers to manage their uploaded educational materials.
+ * Features:
+ * - Tabular view of all personal uploads with status tracking (Pending/Approved/Rejected).
+ * - Real-time filtering by title or subject.
+ * - Full CRUD capability: Edit metadata, replace files, or delete records.
+ * - Supports multipart/form-data for resource updates with optional file replacement.
+ */
 import {
     Dialog,
     DialogContent,
@@ -26,7 +37,11 @@ const ManageResources = () => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Edit Modal State
+    /**
+     * EDIT MODAL STATE
+     * Purpose: Manages sub-lifecycle of the resource editing flow.
+     * Logic: When 'Edit' is clicked, the selected resource's current data is cloned into editFormData.
+     */
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingResource, setEditingResource] = useState(null);
     const [editFormData, setEditFormData] = useState({
@@ -38,6 +53,11 @@ const ManageResources = () => {
     const [editFile, setEditFile] = useState(null);
     const [updating, setUpdating] = useState(false);
 
+    /**
+     * DATA INITIALIZATION
+     * Purpose: Fetches resources authored by the current teacher.
+     * API: GET /resources/my-resources
+     */
     const fetchResources = async () => {
         try {
             setLoading(true);
@@ -55,12 +75,18 @@ const ManageResources = () => {
         fetchResources();
     }, []);
 
+    /**
+     * RESOURCE DELETION HANDLER
+     * Action: DELETE /resources/:id
+     * Validation: Requests user confirmation before destructive action.
+     */
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure you want to delete this resource? This action cannot be undone.")) return;
 
         try {
             await client.delete(`/resources/${id}`);
             toast.success("Resource deleted successfully");
+            // Logic: Optimistically update UI by filtering out the deleted item
             setResources(resources.filter(r => r.id !== id));
         } catch (error) {
             console.error("Delete failed", error);
@@ -80,6 +106,12 @@ const ManageResources = () => {
         setIsEditModalOpen(true);
     };
 
+    /**
+     * RESOURCE UPDATE SUBMISSION
+     * Purpose: Persists modified resource metadata and/or new files.
+     * Action: PUT /resources/:id (Multipart)
+     * Logic: Only appends the 'file' field if a new file has been selected in the modal.
+     */
     const handleUpdate = async (e) => {
         e.preventDefault();
         setUpdating(true);
@@ -96,7 +128,7 @@ const ManageResources = () => {
             });
 
             toast.success("Resource updated successfully");
-            // The response backend sends { message, resource }
+            // Step: Update the specific item in the local array to reflect changes immediately
             setResources(resources.map(r => r.id === editingResource.id ? response.data.resource : r));
             setIsEditModalOpen(false);
         } catch (error) {
@@ -199,7 +231,7 @@ const ManageResources = () => {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
                                                     <a
-                                                        href={`http://localhost:5000${resource.fileUrl}`}
+                                                        href={`${(import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace('/api', '')}${resource.fileUrl}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
                                                         title="Download"

@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Check, X, Eye } from 'lucide-react';
 import { toast } from 'sonner';
-import client from '@/services/apiClient';
+import client, { API_BASE_URL } from '@/services/apiClient';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,10 +25,15 @@ const ReviewRequests = () => {
         fetchRequests();
     }, []);
 
+    /**
+     * DATA FETCHING: Welfare Requests
+     * Purpose: Retrieves all welfare requests for the Principal's school.
+     * Action: Calls GET /api/welfare and stores the result in allRequests state.
+     */
     const fetchRequests = async () => {
         try {
             const { data } = await client.get('/welfare');
-            // Handle paginated response structure
+            // Normalize response to ensure an array is stored
             const requestList = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
             setAllRequests(requestList);
         } catch (error) {
@@ -39,11 +44,17 @@ const ReviewRequests = () => {
         }
     };
 
+    /**
+     * APPROVAL HANDLER
+     * Purpose: Advances a request to the ZEO approval phase.
+     * Action: Updates the request status to 'PRINCIPAL_APPROVED'.
+     * Used for: Confirming that the request is valid at the school level.
+     */
     const handleApprove = async (id) => {
         try {
             await client.patch(`/welfare/${id}/status`, { status: 'PRINCIPAL_APPROVED' });
             toast.success("Request Approved successfully.");
-            fetchRequests();
+            fetchRequests(); // Refresh list to reflect new status
         } catch (error) {
             toast.error(error.response?.data?.message || "Failed to approve request");
         }
@@ -102,10 +113,25 @@ const ReviewRequests = () => {
                 </div>
 
                 <div className="flex items-center gap-2 self-start md:self-center">
-                    <Button variant="outline" size="sm" onClick={() => window.open(request.evidenceUrl, '_blank')} disabled={!request.evidenceUrl}>
+                    {/* 
+                      VIEW EVIDENCE BUTTON
+                      Purpose: Displays supporting documentation uploaded by the teacher.
+                      Action: Opens the file URL in a new browser tab.
+                    */}
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                            const url = `${API_BASE_URL}${request.evidenceUrl}`;
+                            console.log('Opening evidence:', url);
+                            window.open(url, '_blank');
+                        }} 
+                        disabled={!request.evidenceUrl}
+                    >
                         <Eye className="w-4 h-4 mr-2" /> Evidence
                     </Button>
                     {isPending && (
+                        /* ACTION BUTTONS: Only shown for 'SUBMITTED' requests */
                         <>
                             <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprove(request.id)}>
                                 <Check className="w-4 h-4 mr-2" /> Approve
@@ -173,6 +199,12 @@ const ReviewRequests = () => {
                 </Tabs>
             </div>
 
+            {/* 
+              REJECTION DIALOG
+              Purpose: Collects and submits the rationale for denying a request.
+              Action: Updates status to 'REJECTED' along with the provided remarks.
+              Validation: Rejection reason is mandatory.
+            */}
             <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>

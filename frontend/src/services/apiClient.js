@@ -33,10 +33,20 @@ import { getToken, getRefreshToken, setToken, setRefreshToken, removeToken, isTo
  */
 const client = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    headers: {},
 });
+
+// Export the root URL (without /api) for serving static files like uploads
+const getBaseUrl = () => {
+    let url = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    // Ensure protocol is present for absolute links
+    if (url && !url.startsWith('http')) {
+        url = `https://${url}`;
+    }
+    return url.replace(/\/api\/?$/, '');
+};
+
+export const API_BASE_URL = getBaseUrl();
 
 /**
  * TOKEN REFRESH QUEUE MANAGEMENT

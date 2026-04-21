@@ -144,6 +144,7 @@ app.use('/api/schools', require('./routes/schoolRoutes'));
 
 // ✅ Welfare routes (core business: request management)
 app.use('/api/welfare', require('./routes/welfareRoutes'));
+app.use('/api/welfare-types', require('./routes/welfareTypeRoutes'));
 
 // ✅ Donation routes (collecting funds)
 app.use('/api/donations', require('./routes/donationRoutes'));
@@ -204,8 +205,25 @@ if (process.env.NODE_ENV !== 'test') {
      * Calls: SELECT 1 (verifies connection and credentials)
      */
     sequelize.authenticate()
-        .then(() => console.log('Database connected successfully...'))
-        .catch(err => console.log('Database Connection Error: ' + err));
+        .then(() => {
+            console.log('Database connected successfully...');
+            // ✅ Synchronize models with database
+            // In development, this creates tables if they don't exist
+            return sequelize.sync().then(async () => {
+                console.log('Database models synchronized.');
+                
+                // ✅ Auto-seed default welfare types if table is empty
+                const { WelfareType } = require('./models');
+                const count = await WelfareType.count();
+                if (count === 0) {
+                    console.log('Seeding default welfare types...');
+                    const defaults = ['Books', 'Uniforms', 'Fees', 'Equipment', 'Medical', 'Transport', 'Meals', 'Other'];
+                    await WelfareType.bulkCreate(defaults.map(name => ({ name, isActive: true })));
+                    console.log('Default welfare types seeded.');
+                }
+            });
+        })
+        .catch(err => console.log('Database Error: ' + err));
 }
 
 // Handle Unhandled Promise Rejections

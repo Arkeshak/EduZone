@@ -63,10 +63,12 @@ const createDonation = async (req, res) => {
 
 
 
-        res.status(201).json(donation);
+        res.status(201).json({
+            success: true,
+            data: donation
+        });
     } catch (error) {
-
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -132,7 +134,10 @@ const getDonations = async (req, res) => {
         } else if (role === 'DONOR') {
             // Donors see only their own history
             if (!req.user.profileId) {
-                return res.status(200).json(page ? { data: [], total: 0 } : []);
+                return res.status(200).json({
+                    success: true,
+                    data: page ? { data: [], total: 0 } : []
+                });
             }
             queryOptions.where = { donorId: req.user.profileId };
             queryOptions.include = [
@@ -181,13 +186,17 @@ const getDonations = async (req, res) => {
 
         if (page) {
             res.status(200).json({
+                success: true,
                 data: mappedRows,
                 total: result.count,
                 page,
                 totalPages: Math.ceil(result.count / limit)
             });
         } else {
-            res.status(200).json(mappedRows);
+            res.status(200).json({
+                success: true,
+                data: mappedRows
+            });
         }
     } catch (error) {
         console.error("GET DONATIONS ERROR:", error);
@@ -205,10 +214,13 @@ const getStats = async (req, res) => {
     try {
         const totalDonations = await Donation.sum('amount') || 0;
         res.status(200).json({
-            donationFund: totalDonations
+            success: true,
+            data: {
+                donationFund: Number(totalDonations)
+            }
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 

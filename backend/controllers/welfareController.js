@@ -1,4 +1,4 @@
-const { WelfareRequest, User, Teacher, Student, School, Notification, WelfareApproval, Donation, sequelize } = require('../models');
+const { WelfareRequest, User, Teacher, Student, School, Notification, WelfareApproval, Donation, WelfareRequestDocument, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const fs = require('fs');
 const path = require('path');
@@ -67,9 +67,13 @@ const createRequest = async (req, res) => {
             amountRequired = cost;
         }
 
+        console.log(`[WelfareAPI] req.body:`, req.body);
+        console.log(`[WelfareAPI] req.file:`, req.file);
+
         // Find Teacher Profile
         const teacher = await Teacher.findOne({ where: { userId: req.user.id }, transaction });
         if (!teacher) {
+            console.error(`[WelfareAPI] Teacher profile not found for userId: ${req.user.id}`);
             await transaction.rollback();
             return res.status(404).json({ message: 'Teacher profile not found' });
         }
@@ -98,6 +102,12 @@ const createRequest = async (req, res) => {
             await student.save({ transaction });
         }
 
+        console.log(`[WelfareAPI] req.headers:`, req.headers['content-type']);
+        console.log(`[WelfareAPI] req.body:`, JSON.stringify(req.body, null, 2));
+        console.log(`[WelfareAPI] req.file:`, req.file ? `Found: ${req.file.originalname}` : 'Missing');
+
+        const finalAmount = parseFloat(amountRequired || cost || 0);
+
         const request = await WelfareRequest.create({
             teacherId: teacher.id,
             schoolId: teacher.schoolId,
@@ -105,15 +115,37 @@ const createRequest = async (req, res) => {
             description,
             priority: priority ? priority.toUpperCase() : 'MEDIUM',
             category,
-            amountRequired,
+            amountRequired: finalAmount,
             status: 'SUBMITTED'
         }, { transaction });
 
+        // ✅ Handle Supporting Document Upload
+        const fs = require('fs');
+        const logFile = path.join(__dirname, '../upload_debug.log');
+        fs.appendFileSync(logFile, `[${new Date().toISOString()}] Request ${request.id}: file=${req.file ? req.file.originalname : 'MISSING'}\n`);
+
+        if (req.file) {
+            console.log(`[WelfareAPI] Document uploaded: ${req.file.filename}`);
+            try {
+                await WelfareRequestDocument.create({
+                    welfareRequestId: request.id,
+                    fileUrl: `/uploads/${req.file.filename}`
+                }, { transaction });
+                fs.appendFileSync(logFile, `[${new Date().toISOString()}] Saved document for ${request.id}\n`);
+            } catch (docErr) {
+                console.error(`[WelfareAPI] Failed to save document:`, docErr);
+                fs.appendFileSync(logFile, `[${new Date().toISOString()}] ERROR saving document for ${request.id}: ${docErr.message}\n`);
+            }
+        }
+
         await transaction.commit();
-        res.status(201).json(request);
+        res.status(201).json({
+            success: true,
+            data: request
+        });
     } catch (error) {
         if (transaction) await transaction.rollback();
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -160,7 +192,12 @@ const getRequests = async (req, res) => {
                 as: 'donations', 
                 attributes: ['amount'],
                 where: { status: 'VERIFIED' },
-                required: false // Don't exclude requests with 0 donations
+                required: false 
+            },
+            {
+                model: WelfareRequestDocument,
+                as: 'documents',
+                attributes: ['fileUrl']
             }
         ];
 
@@ -174,12 +211,18 @@ const getRequests = async (req, res) => {
 
         const upperRole = (req.user?.role || '').toUpperCase();
 
+        const { schoolId, status } = req.query;
+        let where = {};
+
         if (upperRole === 'ZEO') {
-            const { schoolId } = req.query;
-            if (schoolId) queryOptions.where = { schoolId };
+            if (schoolId) where.schoolId = schoolId;
+            if (status) where.status = status;
+            queryOptions.where = where;
             result = await WelfareRequest.findAndCountAll(queryOptions);
         } else if (upperRole === 'PRINCIPAL') {
-            queryOptions.where = { schoolId: req.user.schoolId };
+            where.schoolId = req.user.schoolId;
+            if (status) where.status = status;
+            queryOptions.where = where;
             result = await WelfareRequest.findAndCountAll(queryOptions);
         } else if (upperRole === 'TEACHER') {
             const teacherProfile = await Teacher.findOne({ where: { userId: req.user.id }, attributes: ['id'] });
@@ -196,7 +239,7 @@ const getRequests = async (req, res) => {
         } else {
             // Public or Donor view - only published
             queryOptions.where = {
-                status: { [Op.in]: ['PUBLISHED', 'PARTIALLY_FUNDED', 'FULLY_FUNDED', 'TRANSFERRED'] }
+                status: { [Op.in]: ['ZEO_APPROVED', 'PUBLISHED', 'PARTIALLY_FUNDED', 'FULLY_FUNDED', 'TRANSFERRED'] }
             };
             result = await WelfareRequest.findAndCountAll(queryOptions);
         }
@@ -234,6 +277,14 @@ const getRequests = async (req, res) => {
                     branch: json.school.bankBranch,
                     accountNumber: json.school.accountNumber
                 };
+            }
+            
+            // Map documents to simple URL array
+            if (json.documents) {
+                json.documentUrls = json.documents.map(doc => doc.fileUrl);
+                // Also provide a primary document for backward compatibility if needed
+                json.supportingDocument = json.documentUrls[0] || null;
+                json.evidenceUrl = json.documentUrls[0] || null; // For ZEO portal
             }
             return json;
         };
@@ -374,7 +425,7 @@ const getPublishedRequests = async (req, res) => {
 
         const result = await WelfareRequest.findAndCountAll({
             where: {
-                status: { [Op.in]: ['PUBLISHED', 'PARTIALLY_FUNDED'] }
+                status: { [Op.in]: ['ZEO_APPROVED', 'PUBLISHED', 'PARTIALLY_FUNDED'] }
             },
             include: [
                 { model: School, as: 'school', attributes: ['id', 'name', 'division'] },
@@ -413,17 +464,22 @@ const getPublishedRequests = async (req, res) => {
             .filter(r => r.collectedAmount < r.cost); // Hide requests that are fully pledged
 
         if (page) {
+            const displayLimit = parseInt(req.query.limit, 10) || 20;
             res.status(200).json({
+                success: true,
                 data: publicData,
-                total: publicData.length, // Updating total to reflect filtered set
+                total: result.count,
                 page,
-                totalPages: Math.ceil(publicData.length / limit)
+                totalPages: Math.ceil(result.count / displayLimit)
             });
         } else {
-            res.status(200).json(publicData);
+            res.status(200).json({
+                success: true,
+                data: publicData
+            });
         }
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -473,10 +529,14 @@ const updateRequest = async (req, res) => {
         await request.save({ transaction });
         await transaction.commit();
 
-        res.status(200).json({ message: 'Request updated successfully', request });
+        res.status(200).json({
+            success: true,
+            message: 'Request updated successfully',
+            data: request
+        });
     } catch (error) {
         if (transaction) await transaction.rollback();
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -512,10 +572,13 @@ const deleteRequest = async (req, res) => {
         await request.destroy({ transaction });
         await transaction.commit();
 
-        res.status(200).json({ message: 'Request deleted successfully' });
+        res.status(200).json({
+            success: true,
+            message: 'Request deleted successfully'
+        });
     } catch (error) {
         if (transaction) await transaction.rollback();
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 

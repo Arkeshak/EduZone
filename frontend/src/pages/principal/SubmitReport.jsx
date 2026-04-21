@@ -25,6 +25,13 @@ const SubmitReport = () => {
     remarks: ''
   });
 
+  const getCurrentMonth = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  };
+
   const fetchHistory = async () => {
     try {
       const { data } = await client.get('/reports/my-school');
@@ -144,6 +151,7 @@ const SubmitReport = () => {
                       type="month"
                       name="month"
                       required
+                      max={getCurrentMonth()}
                       value={formData.month}
                       onChange={handleMonthChange}
                       disabled={isEditing}

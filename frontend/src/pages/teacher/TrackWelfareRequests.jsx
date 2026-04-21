@@ -31,6 +31,7 @@ const TrackWelfareRequests = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState(null);
   const [editFormData, setEditFormData] = useState({ description: '', category: '', amountRequired: '' });
+  const [welfareTypes, setWelfareTypes] = useState([]);
   const [updating, setUpdating] = useState(false);
 
   // Delete State
@@ -43,10 +44,18 @@ const TrackWelfareRequests = () => {
   const [requestDonations, setRequestDonations] = useState([]);
   const [loadingDonations, setLoadingDonations] = useState(false);
 
+  /**
+   * DATA FETCHING: Welfare Requests
+   * Purpose: Retrieves all welfare requests submitted by the current teacher.
+   * Action: 
+   * 1. Calls GET /api/welfare.
+   * 2. Unwraps the paginated response to extract the request array.
+   * 3. Updates the 'requests' state for rendering.
+   */
   const fetchRequests = async () => {
     try {
       const { data } = await client.get('/welfare');
-      // Handle paginated response structure
+      // Step: Normalize different possible API response structures
       const requestList = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
       setRequests(requestList);
     } catch (error) {
@@ -60,7 +69,19 @@ const TrackWelfareRequests = () => {
 
   useEffect(() => {
     fetchRequests();
+    fetchTypes();
   }, []);
+
+  const fetchTypes = async () => {
+    try {
+      const { data } = await client.get('/welfare-types');
+      // data is already unwrapped by apiClient interceptor
+      setWelfareTypes(Array.isArray(data) ? data.map(t => t.name) : []);
+    } catch (err) {
+      console.error('Failed to fetch types', err);
+      setWelfareTypes(['Books', 'Uniforms', 'Fees', 'Other']);
+    }
+  };
 
   const confirmDelete = async () => {
     try {
@@ -83,17 +104,23 @@ const TrackWelfareRequests = () => {
     setIsEditModalOpen(true);
   };
 
+  /**
+   * UPDATE HANDLER
+   * Purpose: Allows editing a request before it is approved or if it was rejected.
+   * Action: Submits updated description/category/amount to the backend via PUT.
+   */
   const handleUpdate = async (e) => {
     e.preventDefault();
     setUpdating(true);
     try {
-      const response = await client.put(`/welfare/${editingRequest.id}`, {
+      // API call to modify existing record
+      await client.put(`/welfare/${editingRequest.id}`, {
         description: editFormData.description,
         category: editFormData.category,
         amountRequired: editFormData.amountRequired
       });
       toast.success("Request updated successfully");
-      fetchRequests(); // Refresh to get all data
+      fetchRequests(); // Step: Re-fetch list to show latest changes
       setIsEditModalOpen(false);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update request");
@@ -123,9 +150,16 @@ const TrackWelfareRequests = () => {
   const fundedRequests = requests.filter(r => ['FULLY_FUNDED', 'TRANSFERRED'].includes(r.status));
   const rejectedRequests = requests.filter(r => r.status === 'REJECTED');
 
+  /**
+   * DATA TABLE RENDERER
+   * Purpose: Reusable function to display request lists in different tabs.
+   * Action: Renders table headers, iterating rows, and showing conditional action buttons.
+   * Elements: Status badges, progress bars, and manage buttons (Edit/Delete).
+   */
   const renderTable = (data, showActions = false) => (
     <div className="overflow-x-auto bg-white rounded-xl border shadow-sm">
       <table className="w-full">
+        {/* ... table content ... */}
         <thead className="bg-slate-50 border-b border-slate-200">
           <tr>
             <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Student / ID</th>
@@ -262,7 +296,11 @@ const TrackWelfareRequests = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Edit Modal */}
+        {/* 
+          EDIT MODAL
+          Purpose: Provides a form interface to correct or update request details.
+          Action: Updates component state via handleUpdate on submission.
+        */}
         <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
           <DialogContent className="sm:max-w-[450px]">
             <DialogHeader>
@@ -276,19 +314,25 @@ const TrackWelfareRequests = () => {
             <form onSubmit={handleUpdate} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-category" className="font-bold">Category</Label>
-                <Input
+                <select
                   id="edit-category"
                   value={editFormData.category}
                   onChange={e => setEditFormData({ ...editFormData, category: e.target.value })}
-                  className="focus-visible:ring-blue-500"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                   required
-                />
+                >
+                  <option value="">Select Category</option>
+                  {welfareTypes.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-amount" className="font-bold">Required Amount (LKR)</Label>
                 <Input
                   id="edit-amount"
                   type="number"
+                  onWheel={(e) => e.target.blur()}
                   value={editFormData.amountRequired}
                   onChange={e => setEditFormData({ ...editFormData, amountRequired: e.target.value })}
                   className="focus-visible:ring-blue-500"
@@ -333,7 +377,11 @@ const TrackWelfareRequests = () => {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Donations Details Drawer / Dialog */}
+        {/* 
+          DONATIONS BREAKDOWN MODAL
+          Purpose: Transparently shows which donors have contributed to the request.
+          Action: Fetches donation list for the specific request ID from the backend.
+        */}
         <Dialog open={isDonationsModalOpen} onOpenChange={setIsDonationsModalOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>

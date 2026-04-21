@@ -7,16 +7,23 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import client from '@/services/apiClient';
 
 /**
- * ZEODashboard Component
- * @desc The master administration dashboard for Zonal Education Officers.
- *       Provides a high-level overview of the entire educational zone, including aggregated 
- *       statistics for schools, students, system-wide pending approvals, and total donation funds.
- *       Integrates Recharts for visual data representation.
+ * ZEO DASHBOARD PAGE
+ * 
+ * File Purpose: Master command center for Zonal Education Officers.
+ * Features:
+ * - Aggregated Analytics: Total schools, students, and zone-wide donation fund.
+ * - System-wide Approvals: Tracking requests validated by Principals awaiting ZEO final sign-off.
+ * - Data Visualization: Weekly welfare request trend chart (using Recharts).
+ * - Activity Feed: Real-time status snapshots of the newest system entries.
  */
 const ZEODashboard = () => {
   const [loading, setLoading] = useState(true);
 
-  // Mock data for the dashboard chart
+  /**
+   * MOCK DATA FOR ANALYTICS
+   * Purpose: Provides visual reference for request trends. 
+   * Note: In production, this should be aggregated from the backend /welfare/analytics endpoint.
+   */
   const weeklyRequestData = [
     { name: 'Mon', requests: 4 },
     { name: 'Tue', requests: 7 },
@@ -27,6 +34,12 @@ const ZEODashboard = () => {
     { name: 'Sun', requests: 2 },
   ];
 
+  /**
+   * ADMIN METRICS STATE
+   * Purpose: Tracks zone-wide KPIs.
+   * DonationFund: Aggregate balance available for distribution.
+   * PendingApprovals: High-priority items awaiting ZEO action.
+   */
   const [stats, setStats] = useState({
     totalSchools: 10,
     totalStudents: 12450,
@@ -34,6 +47,14 @@ const ZEODashboard = () => {
     donationFund: 0
   });
 
+  /**
+   * DATA INITIALIZATION
+   * Purpose: Syncs administrative metrics from the central database.
+   * Logic: Parallel fetch for donation aggregates and full welfare request list.
+   * Validation:
+   * - Filters requests specifically for 'PRINCIPAL_APPROVED' status (ZEO's primary action queue).
+   * - Normalizes response data from paginated objects.
+   */
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -56,7 +77,7 @@ const ZEODashboard = () => {
           totalSchools: 10,
           totalStudents: 12450,
           pendingApprovals: pendingApprovalsCount,
-          donationFund: donationsRes.data.donationFund || 0
+          donationFund: donationsRes.data?.data?.donationFund || donationsRes.data?.donationFund || 0
         });
       } catch (error) {
         console.error("Failed to fetch dashboard stats", error);

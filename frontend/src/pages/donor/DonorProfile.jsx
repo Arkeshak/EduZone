@@ -8,25 +8,55 @@ import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import client from '@/services/apiClient';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ProfilePictureUpload from '@/components/ProfilePictureUpload';
+
+/**
+ * DONOR PROFILE PAGE
+ * 
+ * File Purpose: Management interface for donor identity and impact summary.
+ * Features:
+ * - Statistics: Cumulative lifetime contribution and total unique students supported.
+ * - Profile Management: Update organization name and contact info.
+ * - Loyalty Branding: Displays badges (e.g., 'PLATINUM PARTNER') based on donation volume.
+ * - Multimedia: Profile picture management.
+ */
 
 const DonorProfile = () => {
-  const { user: authUser } = useAuth();
+  const { user: authUser, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [updating, setUpdating] = useState(false);
   
+  /**
+   * FORM STATE MANAGEMENT
+   * Purpose: Manages personal and organizational fields.
+   * OrganizationName: Optional field for branding donations from entities.
+   */
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     organizationName: '',
     contactNumber: ''
   });
+  const [profilePicture, setProfilePicture] = useState(null);
 
+  /**
+   * IMPACT STATISTICS STATE
+   * Purpose: Tracks life-to-date donation impact metrics.
+   */
   const [stats, setStats] = useState({
     studentsHelped: 0,
     totalDonated: 0
   });
 
+  /**
+   * DATA INITIALIZATION
+   * Purpose: Aggregates current donor's profile data and all historical impact stats.
+   * Logic:
+   * 1. GET /auth/me for current identity.
+   * 2. GET /donations to calculate lifetime aggregate student impact.
+   * Validation: Filters for verified/completed donations to ensure accurate impact reporting.
+   */
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
@@ -40,6 +70,7 @@ const DonorProfile = () => {
           organizationName: userData.profile?.organizationName || '',
           contactNumber: userData.profile?.contactNumber || ''
         });
+        setProfilePicture(userData.profilePicture || null);
 
         // 2. Fetch Donation Statistics
         const { data: donationsData } = await client.get('/donations');
@@ -82,6 +113,8 @@ const DonorProfile = () => {
       
       toast.success("Profile updated successfully!");
       setIsEditing(false);
+      // Sync global state
+      await refreshUser();
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update profile");
     } finally {
@@ -117,11 +150,16 @@ const DonorProfile = () => {
           <CardContent className="relative pt-0 px-8">
             {/* Avatar Section */}
             <div className="absolute -top-12 left-8">
-              <div className="w-24 h-24 bg-white rounded-3xl p-1.5 shadow-2xl rotate-3">
-                <div className="w-full h-full bg-gradient-to-tr from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center border border-indigo-100">
-                  <Heart className="w-10 h-10 text-indigo-600 fill-indigo-600/10" />
-                </div>
-              </div>
+              <ProfilePictureUpload
+                currentPicture={profilePicture}
+                onUploadSuccess={(url) => {
+                  setProfilePicture(url);
+                  refreshUser();
+                }}
+                size="md"
+                shape="rounded"
+                editable={isEditing}
+              />
             </div>
 
             <div className="mt-16 space-y-8">

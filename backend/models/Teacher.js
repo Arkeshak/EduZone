@@ -42,6 +42,11 @@ const Teacher = db.define('Teacher', {
         type: DataTypes.STRING,
         allowNull: true,
         field: 'contact_number'
+    },
+    address: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        field: 'address'
     }
 }, {
     tableName: 'teachers',

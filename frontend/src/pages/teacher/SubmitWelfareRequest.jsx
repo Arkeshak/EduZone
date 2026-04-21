@@ -16,15 +16,16 @@
  * Security: Only teachers can submit, request scoped to their school
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GRADES, SECTIONS } from '@/utils/subjects';
 import { useAuth } from '@/context/AuthContext';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { Upload, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Upload, AlertCircle, CheckCircle2, Plus, X } from 'lucide-react';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import FileUploader from '@/components/FileUploader';
-import client from '@/services/apiClient';
+import client, { API_BASE_URL } from '@/services/apiClient';
+import { toast } from 'sonner';
 
 /**
  * SubmitWelfareRequest Component
@@ -44,49 +45,137 @@ const SubmitWelfareRequest = () => {
     supportingDocument: null,
   });
   const [loading, setLoading] = useState(false);
+  const [creatingType, setCreatingType] = useState(false);
+  const [showNewTypeForm, setShowNewTypeForm] = useState(false);
+  const [newTypeName, setNewTypeName] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [welfareTypes, setWelfareTypes] = useState([]);
   const navigate = useNavigate();
 
-  const welfareTypes = ['Books', 'Uniforms', 'Fees', 'Other'];
+  useEffect(() => {
+    fetchTypes();
+  }, []);
+
+  const fetchTypes = async () => {
+    try {
+      const { data } = await client.get('/welfare-types');
+      // data is already unwrapped by apiClient interceptor
+      setWelfareTypes(Array.isArray(data) ? data.map(t => t.name) : []);
+    } catch (err) {
+      console.error('Failed to fetch types', err);
+      setWelfareTypes(['Books', 'Uniforms', 'Fees', 'Other']);
+    }
+  };
+
+  /**
+   * CUSTOM CATEGORY HANDLER
+   * Purpose: Allows teachers to add new welfare categories if one doesn't exist.
+   * Action: 
+   * 1. Submits new category name to the backend.
+   * 2. On success, updates the local dropdown list and selects it.
+   * Validation: Ensures name is not empty before submitting.
+   */
+  const handleCreateNewType = async () => {
+    if (!newTypeName.trim()) return;
+    setCreatingType(true);
+    try {
+      await client.post('/welfare-types', { name: newTypeName });
+      toast.success(`Category "${newTypeName}" added!`);
+      // Step: Dynamically expand the available options without page refresh
+      setWelfareTypes(prev => [...prev, newTypeName]);
+      setFormData(prev => ({ ...prev, welfareType: newTypeName }));
+      setShowNewTypeForm(false);
+      setNewTypeName('');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to add type');
+    } finally {
+      setCreatingType(false);
+    }
+  };
 
   const handleFileChange = (e) => {
     setFormData({ ...formData, supportingDocument: e.target.files[0] });
   };
 
+  /**
+   * WELFARE REQUEST SUBMISSION HANDLER
+   * Purpose: Packages student data and supporting documents for submission.
+   * Action:
+   * 1. Performs local validation on numeric inputs.
+   * 2. Constructs a 'Multipart/Form-Data' payload to support binary file uploads.
+   * 3. Sends POST request to /api/welfare.
+   * 4. Redirects to the request tracker on success.
+   * Validation: 
+   * - Ensures cost is a valid positive number.
+   * - Automatically calculates final grade-section string.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // In a real app, we would include user.school in the payload
-    // const payload = { ...formData, school: user.school };
-    // console.log('Submitting for school:', user.school);
-
     try {
       const fullGrade = `${formData.grade}-${formData.section}`;
       const amount = parseFloat(formData.estimatedCost);
 
-      // ✅ Client-side validation
+      // Client-side Validation: Numeric sanity check
       if (isNaN(amount) || amount <= 0) {
         setError('Please enter a valid estimated cost.');
         setLoading(false);
         return;
       }
 
-      await client.post('/welfare', {
-        studentName: formData.studentName || 'Unknown Student',
-        grade: fullGrade,
-        category: formData.welfareType, // Mapping welfareType to category
-        description: formData.description,
-        amountRequired: amount,
-        priority: 'MEDIUM' // Must strictly match backend UPPERCASE ENUM
-      });
+      // Preparation: Use FormData for multipart upload (including files)
+      const formDataToSend = new FormData();
+      formDataToSend.append('studentName', formData.studentName || 'Unknown Student');
+      formDataToSend.append('grade', fullGrade);
+      formDataToSend.append('category', formData.welfareType);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('amountRequired', amount);
+      formDataToSend.append('priority', 'MEDIUM');
+      
+      // Inclusion: Add document if it was staged by the user
+      if (formData.supportingDocument) {
+        formDataToSend.append('supportingDocument', formData.supportingDocument);
+      }
+
+      // Pre-flight check: Ensure min requirements match backend
+      if (formData.description.length < 10) {
+        setError('Description must be at least 10 characters long.');
+        setLoading(false);
+        return;
+      }
+      if (amount < 10) {
+        setError('Estimated cost must be at least 10 LKR.');
+        setLoading(false);
+        return;
+      }
+
+      // Metadata: Append redundant fields for legacy backend support
+      formDataToSend.append('fullName', formData.studentName); 
+      formDataToSend.append('section', formData.section);
+
+      // Execution: Send data to API
+      await client.post('/welfare', formDataToSend);
 
       setSuccess(true);
+      // UX: Give the user 2 seconds to see the success message before navigating
       setTimeout(() => navigate('/teacher/track-requests'), 2000);
     } catch (err) {
-      setError('Failed to submit welfare request. Please try again.');
+      console.error('Welfare submission error:', err.response?.data || err);
+      
+      // ✅ Enhanced Error Extraction: Identify specific field failures from backend validation
+      const backendErrors = err.response?.data?.errors;
+      let msg = err.response?.data?.message || 'Failed to submit welfare request. Please try again.';
+      
+      if (Array.isArray(backendErrors) && backendErrors.length > 0) {
+        // Map the first validation error to a readable string
+        const firstError = backendErrors[0];
+        msg = `${firstError.message || firstError.msg || 'Invalid input'}${firstError.field ? ` (${firstError.field})` : ''}`;
+      }
+      
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -159,39 +248,81 @@ const SubmitWelfareRequest = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm mb-2">Welfare Type *</label>
-              <select
-                required
-                value={formData.welfareType}
-                onChange={(e) => setFormData({ ...formData, welfareType: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select type</option>
-                {welfareTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
+            {/* 
+              WELFARE CATEGORY SECTION
+              Purpose: Allows selecting from predefined types or adding a custom one.
+            */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-medium">Welfare Type *</label>
+                {/* 
+                  ADD NEW TYPE TOGGLE
+                  Action: Switches input mode between dropdown and text entry.
+                */}
+                <button 
+                  type="button" 
+                  onClick={() => setShowNewTypeForm(!showNewTypeForm)}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                >
+                  {showNewTypeForm ? <><X className="w-3 h-3" /> Cancel</> : <><Plus className="w-3 h-3" /> Add New Type</>}
+                </button>
+              </div>
+
+              {showNewTypeForm ? (
+                /* NEW CATEGORY INPUT (Text mode) */
+                <div className="flex gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <input
+                    type="text"
+                    value={newTypeName}
+                    onChange={(e) => setNewTypeName(e.target.value)}
+                    placeholder="E.g. Special Medical Needs"
+                    className="flex-1 px-4 py-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 font-bold"
+                  />
+                  <button
+                    type="button"
+                    disabled={creatingType || !newTypeName.trim()}
+                    onClick={handleCreateNewType}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md font-bold text-sm hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {creatingType ? '...' : 'Create'}
+                  </button>
+                </div>
+              ) : (
+                /* EXISTING CATEGORY DROPDOWN (Select mode) */
+                <select
+                  required
+                  value={formData.welfareType}
+                  onChange={(e) => setFormData({ ...formData, welfareType: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select type</option>
+                  {welfareTypes.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm mb-2">Description *</label>
+              <label className="block text-sm mb-2">Description * (Min. 10 chars)</label>
               <textarea
                 required
+                minLength={10}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows="4"
-                placeholder="Provide detailed description of the welfare need"
+                placeholder="Provide detailed description of the welfare need (minimum 10 characters)"
               />
             </div>
 
             <div>
-              <label className="block text-sm mb-2">Estimated Cost (LKR) *</label>
+              <label className="block text-sm mb-2">Estimated Cost (LKR) * (Min. 10.00)</label>
               <input
                 type="number"
                 required
-                min="0"
+                min="10"
+                onWheel={(e) => e.target.blur()}
                 value={formData.estimatedCost}
                 onChange={(e) => {
                   const val = e.target.value;

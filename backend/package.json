@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js",
+    "dev": "node --watch --watch-path=server.js --watch-path=controllers --watch-path=models --watch-path=routes --watch-path=middleware server.js",
     "test": "cross-env NODE_ENV=test jest --runInBand --detectOpenHandles"
   },
   "keywords": [],
@@ -23,6 +23,8 @@
     "multer": "^2.0.2",
     "mysql2": "^3.16.1",
     "nodemailer": "^7.0.12",
+    "pdfkit": "^0.18.0",
+    "pdfkit-table": "^0.1.99",
     "sequelize": "^6.37.7",
     "xss": "^1.0.14"
   },

@@ -21,7 +21,8 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
-const { registerDonor, verifyEmail, adminCreateUser, loginUser, getMe, deleteUser, forgotPassword, resetPassword, refreshTokenEndpoint, logoutUser, updateProfile } = require('../controllers/authController');
+const { registerDonor, verifyEmail, adminCreateUser, loginUser, getMe, deleteUser, forgotPassword, resetPassword, refreshTokenEndpoint, logoutUser, updateProfile, updateTeacherSubjects, uploadProfilePicture } = require('../controllers/authController');
+const upload = require('../middleware/uploadMiddleware');
 const { protect } = require('../middleware/authMiddleware');
 const { validate, validationRules } = require('../middleware/validation');
 const { asyncHandler } = require('../middleware/errorHandler');
@@ -46,5 +47,7 @@ router.post('/activate-account', authLimiter, validationRules.accountActivation(
 router.post('/refresh', validationRules.tokenRefresh(), validate, asyncHandler(refreshTokenEndpoint));
 router.post('/logout', protect, asyncHandler(logoutUser));
 router.put('/profile', protect, validationRules.profileUpdate(), validate, asyncHandler(updateProfile));
+router.put('/admin/teacher-subjects/:userId', protect, asyncHandler(updateTeacherSubjects));
+router.post('/profile/picture', protect, upload.single('profilePicture'), asyncHandler(uploadProfilePicture));
 
 module.exports = router;

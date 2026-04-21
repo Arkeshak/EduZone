@@ -1,4 +1,4 @@
-﻿/**
+/**
  * APP ROUTER
  * 
  * File Purpose: Central routing configuration for entire application
@@ -56,9 +56,9 @@ import UserManagement from '@/pages/zeo/UserManagement';
 import WelfareApproval from '@/pages/zeo/WelfareApproval';
 import DonationManagement from '@/pages/zeo/DonationManagement';
 import PublishCircular from '@/pages/zeo/PublishCircular';
-
 import ReportReview from '@/pages/zeo/ReportReview';
 import Analytics from '@/pages/zeo/Analytics';
+import ZEOProfile from '@/pages/zeo/ZEOProfile';
 
 // Donor pages
 import DonorDashboard from '@/pages/donor/DonorDashboard';
@@ -186,6 +186,11 @@ const AppRouter = () => {
           <Route path="/zeo/analytics" element={
             <ProtectedRoute allowedRoles={['zeo']}>
               <Analytics />
+            </ProtectedRoute>
+          } />
+          <Route path="/zeo/profile" element={
+            <ProtectedRoute allowedRoles={['zeo']}>
+              <ZEOProfile />
             </ProtectedRoute>
           } />
 

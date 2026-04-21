@@ -17,10 +17,15 @@ const TrackDonations = () => {
     fetchDonations();
   }, []);
 
+  /**
+   * DATA FETCHING: Donation History
+   * Purpose: Retrieves all verified and pending donations made by the current user.
+   * Action: Calls GET /api/donations with pagination parameters.
+   */
   const fetchDonations = async () => {
     try {
       const { data } = await client.get('/donations?page=1&limit=50');
-      // API returns { data: [...], total: X }
+      // Step: Normalize list extraction from paginated response
       const list = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
       setDonations(list);
     } catch (error) {
@@ -29,13 +34,84 @@ const TrackDonations = () => {
       setLoading(false);
     }
   };
-
+   /**
+   * RECEIPT GENERATOR (CLIENT-SIDE)
+   * Purpose: Provides an immediate, downloadable proof of contribution.
+   * Action: Opens a new print-formatted browser window and populates it with a dynamic HTML/CSS receipt template.
+   * Validation: Prompts user to allow popups if blocked.
+   */
   const handleDownloadReceipt = (donation) => {
-    // If we have a stored reference code or ID, we can redirect to a receipt view or download
-    if (donation.receiptReference) {
-      // In a real app, this might open a window for printing or download a generated PDF
-      window.open(`/donor/receipt?id=${donation.id}`, '_blank');
+    const printWindow = window.open('', '', 'width=800,height=600');
+    // ... logic ...
+    if (!printWindow) {
+      alert("Please allow popups to download receipts");
+      return;
     }
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Donation Receipt - ${donation.request?.referenceCode || `TXN-${donation.id}`}</title>
+          <style>
+            body { font-family: 'Inter', system-ui, sans-serif; color: #1e293b; line-height: 1.6; padding: 40px; }
+            .receipt-card { border: 2px solid #e2e8f0; padding: 40px; border-radius: 20px; max-width: 600px; margin: auto; }
+            .header { text-align: center; border-bottom: 2px dashed #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; }
+            .header h1 { color: #2563eb; margin: 0 0 10px 0; font-size: 24px; text-transform: uppercase; letter-spacing: 2px; }
+            .row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+            .label { font-weight: bold; color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+            .value { font-weight: 600; font-size: 16px; }
+            .amount { font-size: 24px; color: #2563eb; font-weight: 900; }
+            .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #94a3b8; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-card">
+            <div class="header">
+              <h1>OFFICIAL DONATION RECEIPT</h1>
+              <p style="margin: 0; color: #64748b; font-weight: 500;">Eduzone Welfare System</p>
+            </div>
+            
+            <div class="row">
+              <span class="label">Date</span>
+              <span class="value">${new Date(donation.createdAt).toLocaleDateString()}</span>
+            </div>
+            
+            <div class="row">
+              <span class="label">Receipt No.</span>
+              <span class="value">RCPT-${new Date().getFullYear()}-${String(donation.id).padStart(4, '0')}</span>
+            </div>
+            
+            <div class="row">
+              <span class="label">Reference ID</span>
+              <span class="value">${donation.request?.referenceCode || `TXN-${donation.id}`}</span>
+            </div>
+
+            <div class="row">
+              <span class="label">Beneficiary</span>
+              <span class="value">${donation.request?.category || 'General Welfare Fund'}</span>
+            </div>
+            
+            <div class="row">
+              <span class="label">Payment Method</span>
+              <span class="value">${donation.paymentMethod ? donation.paymentMethod.replace('_', ' ') : 'Bank Transfer'}</span>
+            </div>
+            
+            <div class="row" style="border: none; margin-top: 30px; align-items: center;">
+              <span class="label" style="font-size: 16px;">Total Amount</span>
+              <span class="amount">LKR ${Number(donation.amount).toLocaleString()}</span>
+            </div>
+            
+            <div class="footer">
+              <p>This is an electronically generated receipt for Eduzone Welfare System.<br/>Thank you for your generous contribution!</p>
+            </div>
+          </div>
+          <script>
+            window.onload = function() { window.print(); window.setTimeout(function(){ window.close(); }, 500); }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   if (loading) return <DashboardLayout><LoadingSpinner /></DashboardLayout>;
@@ -55,6 +131,7 @@ const TrackDonations = () => {
         </div>
 
         {donations.length === 0 ? (
+          /* EMPTY STATE: Encourages first-time donatons */
           <Card className="border-none shadow-xl bg-slate-50/50">
             <CardContent className="flex flex-col items-center justify-center py-20 text-center">
               <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-sm mb-6">
@@ -72,6 +149,10 @@ const TrackDonations = () => {
           </Card>
         ) : (
           <div className="space-y-4">
+            {/* 
+              IMPACT DASHBOARD
+              Summarizes total LKR value and quantity of contributions.
+            */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                <Card className="p-4 border-none shadow-sm bg-blue-600 text-white">
                   <p className="text-[10px] font-bold uppercase opacity-80 mb-1">Total Impact</p>

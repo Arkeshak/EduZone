@@ -17,6 +17,19 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 
+/**
+ * ZEO DONATION MANAGEMENT PAGE
+ * 
+ * File Purpose: Audit and remittance interface for Zonal Education Officers.
+ * Features:
+ * - Transaction Verification: Link donor receipts to actual bank statements.
+ * - Fund Remittance: Triggering the 'transfer' record after validating receipt.
+ * - Multi-Tab Status: Track Pending, Verified (History), and Rejected transactions.
+ * - Integration: Pulls school-level bank metadata directly for precision transfers.
+ * 
+ * Lifecycle: View Receipt (Proof) → Verify Bank Entry → Authorize Fund Release → Record Remittance.
+ */
+
 const DonationManagement = () => {
   const [donations, setDonations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +38,11 @@ const DonationManagement = () => {
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Transfer Form State
+  /**
+   * TRANSFER REMITTANCE FORM STATE
+   * Purpose: Captures official bank transfer references for fund release.
+   * TransferProof: Optional scan/screenshot of ZEO's transfer to the school.
+   */
   const [transferRef, setTransferRef] = useState('');
   const [transferProof, setTransferProof] = useState(null);
   const [transferLoading, setTransferLoading] = useState(false);
@@ -46,6 +63,14 @@ const DonationManagement = () => {
     }
   };
 
+  /**
+   * TRANSACTION VERIFICATION & TRANSFER HANDLER
+   * Purpose: Validates a donor's contribution and records the subsequent ZEO-to-School transfer.
+   * Logic:
+   * 1. Updates donation status to 'VERIFIED' (PATCH /donations/:id/verify).
+   * 2. Creates a 'transfer' record with bank reference and proof (POST /transfers).
+   * Validation: Ensured both a reference number and physical proof are provided before authorizing funds.
+   */
   const handleVerifyAndTransfer = async () => {
     if (!transferRef) {
       toast.error("Please enter a bank transfer reference");

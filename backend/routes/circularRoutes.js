@@ -16,10 +16,12 @@
 
 const express = require('express');
 const router = express.Router();
-const { publishCircular, getCirculars } = require('../controllers/circularController');
+const { publishCircular, getCirculars, updateCircular } = require('../controllers/circularController');
 const { protect } = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 
-router.post('/', protect, publishCircular);
+router.post('/', protect, upload.single('attachment'), publishCircular);
 router.get('/', protect, getCirculars);
+router.put('/:id', protect, upload.single('attachment'), updateCircular);
 
 module.exports = router;

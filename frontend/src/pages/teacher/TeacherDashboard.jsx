@@ -30,6 +30,15 @@ import { useAuth } from '@/context/AuthContext';
  */
 const TeacherDashboard = () => {
   const { user } = useAuth();
+  
+  /**
+   * STATE MANAGEMENT
+   * Purpose: Tracks request statistics, notifications, and loading state.
+   * TotalRequests: Aggregate count of all teacher-submitted requests.
+   * Pending: Requests awaiting Principal or ZEO approval.
+   * Approved: Successfully published or approved requests.
+   * Rejected: Denied requests for various administrative reasons.
+   */
   const [stats, setStats] = useState({
     totalRequests: 0,
     pending: 0,
@@ -39,7 +48,13 @@ const TeacherDashboard = () => {
   const [recentNotifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  /**
+   * DATA FETCHING EFFECT
+   * Purpose: Retrieves welfare records to populate dashboard stats on mount.
+   * Action: Calls GET /welfare and parses response for status categorization.
+   * Validation: Normalizes response objects to ensure array format regardless of pagination.
+   */
+   useEffect(() => {
     const fetchData = async () => {
       try {
         const { data } = await client.get('/welfare');
@@ -87,7 +102,7 @@ const TeacherDashboard = () => {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl mb-2 font-bold">Teacher Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user?.name}! Overview of your student welfare requests.</p>
+          <p className="text-gray-600">Welcome back, {user?.fullName || user?.name}! Overview of your student welfare requests.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -98,6 +113,7 @@ const TeacherDashboard = () => {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
+          {/* QUICK ACTIONS: Primary navigational links for frequent tasks */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <h2 className="text-lg mb-4 font-semibold">Quick Actions</h2>
             <div className="space-y-3">
@@ -107,6 +123,7 @@ const TeacherDashboard = () => {
             </div>
           </div>
 
+          {/* RECENT UPDATES: Display feed of latest request status transitions */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <h2 className="text-lg mb-4 font-semibold">Recent Status Updates</h2>
             <div className="space-y-3">

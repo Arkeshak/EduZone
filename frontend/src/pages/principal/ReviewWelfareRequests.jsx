@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Check, X, FileText } from 'lucide-react';
-import client from '@/services/apiClient';
+import client, { API_BASE_URL } from '@/services/apiClient';
 
 const ReviewWelfareRequests = () => {
   console.log('Rendering ReviewWelfareRequests'); // DEBUG LOG
@@ -92,10 +92,30 @@ const ReviewWelfareRequests = () => {
                       <p className="font-medium text-gray-900">LKR {Number(request.cost).toLocaleString()}</p>
                     </div>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1 mb-4">
                     <span className="text-sm font-semibold text-gray-700">Description:</span>
                     <p className="text-gray-600 text-sm leading-relaxed">{request.description}</p>
                   </div>
+
+                  {request.documentUrls && request.documentUrls.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-100">
+                      <span className="text-sm font-semibold text-gray-700 block mb-2">Supporting Documents:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {request.documentUrls.map((url, idx) => (
+                          <a 
+                            key={idx}
+                            href={`${API_BASE_URL}${url}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-100"
+                          >
+                            <FileText className="w-3.5 h-3.5 mr-1.5" />
+                            View Document {request.documentUrls.length > 1 ? idx + 1 : ''}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter className="flex justify-end space-x-3 bg-gray-50 pt-4">
                   <Button variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200" onClick={() => handleAction(request.id, 'reject')}>

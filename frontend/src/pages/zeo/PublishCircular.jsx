@@ -17,10 +17,14 @@ import {
   Send, 
   Clock, 
   Filter,
-  ArrowUpRight
+  ArrowUpRight,
+  Edit2,
+  Download
 } from 'lucide-react';
 import { toast } from 'sonner';
-import client from '@/services/apiClient';
+import client, { API_BASE_URL } from '@/services/apiClient';
+import FileUploader from '@/components/FileUploader';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import {
   Dialog,
   DialogContent,
@@ -29,14 +33,33 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+/**
+ * PUBLISH CIRCULAR PAGE
+ * 
+ * File Purpose: Official communication hub for Zonal Education Officers.
+ * Features:
+ * - Drafting: Rich-text (textarea) composition for new directives.
+ * - Targeting: Role-based recipient filtering (Principals/Teachers).
+ * - Archiving: Searchable history of dispatched circulars.
+ * - Attachments: Multipart/formData support for official PDF documents.
+ */
+
 const PublishCircular = () => {
   const [loading, setLoading] = useState(false);
   const [circulars, setCirculars] = useState([]);
   const [fetching, setFetching] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCircular, setSelectedCircular] = useState(null);
+  const [editingCircular, setEditingCircular] = useState(null);
+  const [editForm, setEditForm] = useState({ title: '', message: '', recipients: [], status: '', attachment: null });
+  const [attachment, setAttachment] = useState(null);
   const [activeTab, setActiveTab] = useState('compose');
 
+  /**
+   * DATA INITIALIZATION
+   * Purpose: Syncs circular history from the central archive.
+   * API: GET /circulars
+   */
   useEffect(() => {
     fetchCirculars();
   }, []);
@@ -52,6 +75,15 @@ const PublishCircular = () => {
     }
   };
 
+  /**
+   * CIRCULAR PUBLISHING HANDLER
+   * Purpose: Formalizes and broadcasts a new zonal directive.
+   * Action: POST /circulars (Multipart/formData)
+   * Logic:
+   * - Dynamically constructs recipient list based on checkbox state.
+   * - Appends physical document if provided.
+   * Validation: Automatically refreshes history and redirects to the archive tab on success.
+   */
   const handlePublish = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -65,18 +97,62 @@ const PublishCircular = () => {
 
     const finalRecipients = recipients.length > 0 ? recipients : ['PRINCIPAL', 'TEACHER'];
 
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('message', message);
+    finalRecipients.forEach(r => formData.append('recipients[]', r));
+    if (attachment) {
+      formData.append('attachment', attachment);
+    }
+
     try {
-      await client.post('/circulars', { 
-        title, 
-        message, 
-        recipients: finalRecipients 
-      });
+      await client.post('/circulars', formData);
       toast.success('Circular published successfully!');
       e.target.reset();
+      setAttachment(null);
       fetchCirculars(); // Refresh history
       setActiveTab('history'); // Switch to history to see the result
     } catch (error) {
       toast.error('Failed to publish circular');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openEditModal = (circular) => {
+    setEditingCircular(circular);
+    setEditForm({ 
+      title: circular.title, 
+      message: circular.message,
+      status: circular.status,
+      recipients: circular.recipients?.map(r => r.role) || [],
+      attachment: null
+    });
+    setIsEditModalOpen(true); // Assuming there's a dialog state or just using editingCircular
+  };
+
+  const handleUpdateCircular = async () => {
+    if (!editForm.title || !editForm.message) return toast.error('Fields cannot be empty');
+    setLoading(true);
+    const formData = new FormData();
+    formData.append('title', editForm.title);
+    formData.append('message', editForm.message);
+    formData.append('status', editForm.status);
+    editForm.recipients.forEach(r => formData.append('recipients[]', r));
+    if (editForm.attachment) {
+      formData.append('attachment', editForm.attachment);
+    }
+
+    try {
+      await client.put(`/circulars/${editingCircular.id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success('Circular updated successfully!');
+      setEditingCircular(null);
+      fetchCirculars(); // Refresh history
+    } catch (error) {
+      toast.error('Failed to update circular');
       console.error(error);
     } finally {
       setLoading(false);
@@ -169,11 +245,15 @@ const PublishCircular = () => {
                       </div>
 
                       <div className="space-y-4">
-                        <Label className="text-xs font-black text-slate-400 uppercase tracking-widest italic opacity-50">Advanced Options (Upcoming)</Label>
-                         <div className="p-8 border-2 border-dashed border-slate-100 rounded-2xl flex flex-col items-center justify-center text-center opacity-40">
-                           <ArrowUpRight className="w-8 h-8 text-slate-300 mb-2" />
-                           <p className="text-[10px] uppercase font-black tracking-tighter text-slate-400">Scheduled Dispatch & File Attachments</p>
-                         </div>
+                        <Label className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Optional Attachment (PDF)</Label>
+                        <FileUploader 
+                          id="circular-attachment"
+                          label="Official Document"
+                          accept=".pdf"
+                          onChange={(e) => setAttachment(e.target.files[0])}
+                          file={attachment}
+                          helperText="Upload official PDF document to accompany this circular."
+                        />
                       </div>
                     </div>
 
@@ -234,14 +314,24 @@ const PublishCircular = () => {
                                </div>
                             ))}
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="font-black text-[10px] uppercase tracking-widest text-blue-600 hover:bg-blue-50"
-                            onClick={() => setSelectedCircular(circular)}
-                          >
-                            Read Full <Eye className="w-3 h-3 ml-2" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="font-black text-[10px] uppercase tracking-widest text-slate-500 hover:bg-slate-100"
+                              onClick={() => openEditModal(circular)}
+                            >
+                              Edit <Edit2 className="w-3 h-3 ml-2" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="font-black text-[10px] uppercase tracking-widest text-blue-600 hover:bg-blue-50"
+                              onClick={() => setSelectedCircular(circular)}
+                            >
+                              Read Full <Eye className="w-3 h-3 ml-2" />
+                            </Button>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -268,7 +358,7 @@ const PublishCircular = () => {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="py-8 border-t border-slate-100 mt-4">
+            <div className="py-8 border-y border-slate-100 mt-4 border-dashed">
               <div className="prose prose-slate max-w-none">
                 <p className="whitespace-pre-wrap text-slate-700 font-medium leading-loose text-lg font-serif italic">
                   {selectedCircular?.message}
@@ -276,8 +366,120 @@ const PublishCircular = () => {
               </div>
             </div>
 
+            {selectedCircular?.attachments && selectedCircular.attachments.length > 0 && (
+              <div className="py-4 px-6 bg-slate-50 rounded-xl border border-slate-200 mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">Attached File</p>
+                    <p className="text-xs text-slate-500 font-medium">Verify your zonal circular document</p>
+                  </div>
+                </div>
+                <Button 
+                  asChild 
+                  className="bg-blue-600 hover:bg-blue-700 shadow-md h-10 px-6 font-bold flex gap-2"
+                >
+                  <a 
+                    href={`${API_BASE_URL}${selectedCircular.attachments[0].fileUrl}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    download
+                  >
+                    <Download className="w-4 h-4" /> Download PDF
+                  </a>
+                </Button>
+              </div>
+            )}
+
             <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
                <Button onClick={() => setSelectedCircular(null)} className="font-bold bg-slate-900">Close Archive</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Details Modal */}
+        <Dialog open={!!editingCircular} onOpenChange={() => setEditingCircular(null)}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <div className="flex items-center gap-2 text-xs font-black text-amber-600 uppercase tracking-widest mb-2">
+                 <Edit2 className="w-4 h-4" /> Edit Official Announcement
+              </div>
+              <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight leading-tight uppercase">
+                Modify Circular
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="py-4 space-y-6 border-t border-slate-100 mt-2">
+              <div className="space-y-2">
+                 <Label className="text-xs font-black text-slate-400 uppercase tracking-widest">Formal Subject / Title</Label>
+                 <Input 
+                   value={editForm.title} 
+                   onChange={e => setEditForm({ ...editForm, title: e.target.value })} 
+                   className="font-bold"
+                 />
+              </div>
+              
+              <div className="space-y-2">
+                 <Label className="text-xs font-black text-slate-400 uppercase tracking-widest">Message Body</Label>
+                 <Textarea 
+                   value={editForm.message} 
+                   onChange={e => setEditForm({ ...editForm, message: e.target.value })} 
+                   className="min-h-[200px]"
+                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-50 border-dashed">
+                <div className="space-y-3">
+                   <Label className="text-xs font-black text-slate-400 uppercase tracking-widest">Target Stakeholders</Label>
+                   <div className="flex flex-col gap-2">
+                      <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors border-slate-100">
+                        <Checkbox 
+                          checked={editForm.recipients.includes('PRINCIPAL')}
+                          onCheckedChange={(checked) => {
+                            const newRecs = checked 
+                              ? [...editForm.recipients, 'PRINCIPAL'] 
+                              : editForm.recipients.filter(r => r !== 'PRINCIPAL');
+                            setEditForm({ ...editForm, recipients: newRecs });
+                          }}
+                        />
+                        <span className="text-sm font-bold">Principals</span>
+                      </label>
+                      <label className="flex items-center gap-3 p-3 border rounded-xl cursor-pointer hover:bg-slate-50 transition-colors border-slate-100">
+                        <Checkbox 
+                          checked={editForm.recipients.includes('TEACHER')}
+                          onCheckedChange={(checked) => {
+                            const newRecs = checked 
+                              ? [...editForm.recipients, 'TEACHER'] 
+                              : editForm.recipients.filter(r => r !== 'TEACHER');
+                            setEditForm({ ...editForm, recipients: newRecs });
+                          }}
+                        />
+                        <span className="text-sm font-bold">Teachers</span>
+                      </label>
+                   </div>
+                </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-xs font-black text-slate-400 uppercase tracking-widest italic">Update Attachment (Optional)</Label>
+                    <FileUploader 
+                        id="update-circular-attachment"
+                        label="New PDF Document"
+                        accept=".pdf"
+                        onChange={(e) => setEditForm({ ...editForm, attachment: e.target.files[0] })}
+                        file={editForm.attachment}
+                        helperText="Uploading a new file will replace the previous one."
+                    />
+                  </div>
+                </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
+               <Button onClick={() => setEditingCircular(null)} variant="ghost" className="font-bold text-slate-500">Cancel</Button>
+               <Button onClick={handleUpdateCircular} disabled={loading} className="font-bold bg-amber-600 hover:bg-amber-700">
+                 {loading ? 'Saving...' : 'Save Changes'}
+               </Button>
             </div>
           </DialogContent>
         </Dialog>

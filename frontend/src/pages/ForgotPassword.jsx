@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FORGOT PASSWORD PAGE
  * 
  * File Purpose: Allow users to reset forgotten passwords
@@ -29,6 +29,14 @@ const ForgotPassword = () => {
     const [submitted, setSubmitted] = useState(false);
     const navigate = useNavigate();
 
+    /**
+     * PASSWORD RESET REQUEST HANDLER
+     * Purpose: Initiates the recovery process by sending a link to the user's email.
+     * Action:
+     * 1. Submits the email address to the backend.
+     * 2. On success, toggles the 'submitted' state to show the confirmation UI.
+     * Validation: Displays error if account is not found or email format is invalid.
+     */
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -39,7 +47,7 @@ const ForgotPassword = () => {
             setSubmitted(true);
             toast.success('Reset link sent to your email');
         } catch (err) {
-            console.error(err);
+            console.error('Forgot Password Error:', err);
             setLoading(false);
             toast.error(err.response?.data?.message || 'Failed to send reset link');
         }

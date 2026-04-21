@@ -1,0 +1,26 @@
+[2026-04-21T05:24:41.385Z] POST /api/resources - File too large
+Stack: MulterError: File too large
+    at abortWithCode (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\multer\lib\make-middleware.js:85:22)
+    at FileStream.<anonymous> (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\multer\lib\make-middleware.js:155:11)
+    at FileStream.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\busboy\lib\types\multipart.js:479:32)
+    at feed (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\streamsearch\lib\sbmh.js:248:10)
+    at SBMH.push (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+
+[2026-04-21T05:25:26.624Z] POST /api/resources - File too large
+Stack: MulterError: File too large
+    at abortWithCode (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\multer\lib\make-middleware.js:85:22)
+    at FileStream.<anonymous> (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\multer\lib\make-middleware.js:155:11)
+    at FileStream.emit (node:events:518:28)
+    at SBMH.ssCb [as _cb] (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\busboy\lib\types\multipart.js:479:32)
+    at feed (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\streamsearch\lib\sbmh.js:248:10)
+    at SBMH.push (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\streamsearch\lib\sbmh.js:104:16)
+    at Multipart._write (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\busboy\lib\types\multipart.js:567:19)
+    at writeOrBuffer (node:internal/streams/writable:572:12)
+    at _write (node:internal/streams/writable:501:10)
+    at Writable.write (node:internal/streams/writable:510:10)
+

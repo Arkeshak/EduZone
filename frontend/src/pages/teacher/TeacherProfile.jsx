@@ -8,34 +8,64 @@ import { User, Mail, Phone, MapPin, Building, BookOpen, Calendar, Save } from 'l
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import client from '@/services/apiClient';
+import ProfilePictureUpload from '@/components/ProfilePictureUpload';
+
+/**
+ * TEACHER PROFILE PAGE
+ * 
+ * File Purpose: Management interface for teacher personal and professional data.
+ * Features:
+ * - View identity and assignment (School, Subjects).
+ * - Interactive edit mode for contact details (Phone, Address).
+ * - Profile picture management via dedicated uploader component.
+ * - Password security management.
+ * 
+ * Constraints:
+ * - Email and School are read-only for identity consistency.
+ * - Profile picture updates trigger a global user context refresh.
+ */
 
 const TeacherProfile = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  /**
+   * FORM STATE MANAGEMENT
+   * Purpose: Tracks local changes to profile fields before persistence.
+   * Logic: Initialize with AuthContext data, then refine with full profile fetch.
+   */
   const [formData, setFormData] = useState({
     name: user?.name || 'Loading...',
+    email: '',
     school: 'Loading...',
     designation: 'Teacher',
     phone: '',
     address: ''
   });
+  const [profilePicture, setProfilePicture] = useState(null);
 
-  useEffect(() => {
+  /**
+   * PROFILE DATA SYNCHRONIZATION
+   * Purpose: Fetches the most recent profile details from the server on component mount.
+   * Action: GET /auth/me for current user identity and profile relationship data.
+   */
+   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const { data } = await client.get('/auth/me');
         if (data.success) {
           setFormData({
             name: data.fullName || user?.name || '',
+            email: data.email || user?.email || '',
             school: data.school?.name || 'Not Assigned',
             designation: 'Teacher',
-            phone: data.profile?.contactNumber || 'Not set',
-            address: data.school?.address || 'Not set'
+            phone: data.profile?.contactNumber || '',
+            address: data.profile?.address || ''
           });
           setSubjects(data.profile?.subjects || []);
+          setProfilePicture(data.profilePicture || null);
         }
       } catch (error) {
         console.error("Failed to fetch profile", error);
@@ -46,9 +76,34 @@ const TeacherProfile = () => {
     fetchProfile();
   }, [user]);
 
-  const handleSave = () => {
-    setIsEditing(false);
-    toast.success("Profile updated successfully!");
+  const [saving, setSaving] = useState(false);
+
+  /**
+   * PROFILE UPDATE HANDLER
+   * Purpose: Persists user-modified profile data to the database.
+   * Action: PUT /auth/profile with updated contact and name fields.
+   * Validation:
+   * - Triggers global AuthContext refresh (`refreshUser`) to update sidebar/header identity.
+   * - Provides toast feedback on success/failure.
+   */
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await client.put('/auth/profile', {
+        fullName: formData.name,
+        contactNumber: formData.phone,
+        address: formData.address
+      });
+      setIsEditing(false);
+      toast.success("Profile updated successfully!");
+      // Step: Sync global identity state across the entire application
+      await refreshUser();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update profile");
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -60,8 +115,17 @@ const TeacherProfile = () => {
           {/* Profile Card */}
           <Card className="md:col-span-1">
             <CardContent className="pt-6 text-center space-y-4">
-              <div className="w-24 h-24 bg-blue-100 rounded-full mx-auto flex items-center justify-center text-blue-600">
-                <User className="w-12 h-12" />
+              <div className="mx-auto flex items-center justify-center">
+                <ProfilePictureUpload
+                  currentPicture={profilePicture}
+                  onUploadSuccess={(url) => {
+                    setProfilePicture(url);
+                    refreshUser();
+                  }}
+                  size="md"
+                  shape="circle"
+                  editable={isEditing}
+                />
               </div>
               <div>
                 <CardTitle className="text-xl">{formData.name}</CardTitle>
@@ -111,7 +175,7 @@ const TeacherProfile = () => {
                   <div className="text-sm text-gray-500 flex items-center">
                     <Mail className="w-4 h-4 mr-2" /> Email
                   </div>
-                  <div className="font-medium text-gray-700">{user?.email || 'email@edu.lk'} <span className="text-xs text-gray-400">(Read-only)</span></div>
+                  <div className="font-medium text-gray-700">{formData.email || 'Loading...'} <span className="text-xs text-gray-400">(Read-only)</span></div>
                 </div>
 
                 <div className="space-y-1">

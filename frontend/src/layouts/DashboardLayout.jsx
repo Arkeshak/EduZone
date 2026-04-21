@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DASHBOARD LAYOUT COMPONENT
  * 
  * File Purpose: Wrapper layout for all role-based dashboards
@@ -39,6 +39,11 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 
+/**
+ * DashboardLayout Component
+ * Purpose: Provides a consistent navigation framework for all authenticated users.
+ * Features: Role-based navigation items, collapsible sidebar, and responsive header.
+ */
 const DashboardLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { role, logout, user } = useAuth();
@@ -51,6 +56,12 @@ const DashboardLayout = ({ children }) => {
     navigate('/login');
   };
 
+  /**
+   * ROLE-BASED NAVIGATION CONFIGURATION
+   * Purpose: Dynamically determines which menu items an authenticated user sees.
+   * Action: Checks the user's role and returns an array of label/path/icon objects.
+   * Used for: Rendering the sidebar navigation links.
+   */
   const getRoleNavigation = () => {
     const safeRole = role ? role.toLowerCase() : '';
     switch (safeRole) {
@@ -81,8 +92,8 @@ const DashboardLayout = ({ children }) => {
           { name: 'Donations', path: '/zeo/donations', icon: DollarSign },
           { name: 'Publish Circular', path: '/zeo/publish-circular', icon: Bell },
 
-          { name: 'School Reports', path: '/zeo/reports', icon: BarChart3 },
           { name: 'Analytics', path: '/zeo/analytics', icon: BarChart3 },
+          { name: 'Profile', path: '/zeo/profile', icon: User },
         ];
       case 'donor':
         return [
@@ -108,6 +119,11 @@ const DashboardLayout = ({ children }) => {
 
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 w-72 bg-gradient-to-b from-slate-900 to-slate-800 text-white z-50 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl`}>
+        {/* 
+          SIDEBAR HEADER
+          Purpose: Display application logo and name.
+          Elements: GraduationCap icon + "EduZone" title.
+        */}
         <div className="flex items-center h-20 px-6 border-b border-white/10">
           <GraduationCap className="w-8 h-8 text-blue-400 mr-3" />
           <h1 className="text-2xl font-bold tracking-tight text-white">EduZone</h1>
@@ -117,15 +133,36 @@ const DashboardLayout = ({ children }) => {
         </div>
 
         <div className="px-4 py-8">
+          {/* 
+            USER PROFILE BOX (Sidebar)
+            Purpose: Display current user's identity in the navigation menu.
+            Elements: Avatar (Image or Initial) + Full Name + Role title.
+          */}
           {user && (
-            <div className="mb-8 p-4 bg-white/5 rounded-xl border border-white/10 backdrop-blur-md">
-              <p className="text-xs text-blue-300 uppercase tracking-wider font-semibold mb-1">Signed in as</p>
-              <p className="font-bold text-lg truncate">{user.name}</p>
-              <p className="text-sm text-slate-400 capitalize">{role}</p>
+            <div className="mb-8 p-4 bg-white/5 rounded-xl border border-white/10 backdrop-blur-md flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-blue-500 overflow-hidden flex-shrink-0 shadow-lg border border-white/20">
+                {user?.profilePicture ? (
+                  <img src={`http://localhost:5000${user.profilePicture}`} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white font-bold text-lg">
+                    {(user?.fullName || user?.name)?.charAt(0) || 'U'}
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-blue-300 uppercase tracking-wider font-semibold mb-0.5">Signed in as</p>
+                <p className="font-bold text-white truncate leading-tight">{user.fullName || user.name}</p>
+                <p className="text-xs text-slate-400 capitalize">{role}</p>
+              </div>
             </div>
           )}
 
-          <nav className="space-y-1">
+        {/* 
+          SIDEBAR NAVIGATION LIST
+          Purpose: List all role-specific navigation links.
+          Action: Renders clickable links that update the browser URL and main view.
+        */}
+        <nav className="space-y-1">
             {navigation.map((item) => {
               const isActive = location.pathname === item.path;
               return (
@@ -146,6 +183,12 @@ const DashboardLayout = ({ children }) => {
           </nav>
         </div>
 
+        {/* 
+          SIGN OUT BUTTON
+          Purpose: Allow user to terminate their session.
+          Action: Triggers handleLogout which clears tokens and redirects to /login.
+          Validation: Confirmation is handled via state/interceptor or is immediate based on UI.
+        */}
         <div className="absolute bottom-0 w-full p-6 border-t border-white/10">
           <button
             onClick={handleLogout}
@@ -159,21 +202,39 @@ const DashboardLayout = ({ children }) => {
 
       {/* Main content */}
       <div className="lg:pl-72 flex flex-col min-h-screen transition-all duration-300">
+        {/* 
+          TOP HEADER
+          Purpose: Provide page context and quick access to profile settings.
+          Action: Shows the organization name and a clickable user profile picture.
+        */}
         <header className="sticky top-0 z-30 flex items-center h-20 px-6 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm lg:px-10 justify-between">
           <div className="flex items-center">
+            {/* 
+              MOBILE MENU TOGGLE
+              Purpose: Opens the sidebar on small screens.
+              Action: Sets sidebarOpen state to true.
+            */}
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden mr-4 p-2 rounded-md hover:bg-slate-100 text-slate-600">
               <Menu className="w-6 h-6" />
             </button>
             <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-slate-800 truncate">Hatton Zonal Education Office</h2>
           </div>
           <div className="flex items-center space-x-4">
-            <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+            {/* 
+              USER PROFILE BUTTON
+              Purpose: Quick access to the user's profile settings.
+              Action: Navigates to the role-specific profile page on click.
+            */}
+            <button 
+              onClick={() => navigate(`/${role?.toLowerCase()}/profile`)}
+              className="w-9 h-9 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md overflow-hidden border border-white/50 cursor-pointer hover:ring-2 hover:ring-blue-400 transition-all duration-200"
+            >
+              {user?.profilePicture ? (
+                <img src={`http://localhost:5000${user.profilePicture}`} alt="User" className="w-full h-full object-cover" />
+              ) : (
+                (user?.fullName || user?.name)?.charAt(0) || 'U'
+              )}
             </button>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
-              {user?.name?.charAt(0) || 'U'}
-            </div>
           </div>
         </header>
 

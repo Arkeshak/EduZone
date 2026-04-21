@@ -1,22 +1,17 @@
 /**
  * MAKE DONATION PAGE
  * 
- * File Purpose: Multi-step donation form for donors
- * Used for: Processing donations to specific welfare requests or general donations
- * 
+ * File Purpose: Multi-step donation form for the Donor Portal.
  * Features:
- * - Step 1: Select amount (preset or custom)
- * - Step 2: Choose allocation (specific request or general)
- * - Step 3: Select payment method (Online or Bank Transfer)
- * - Step 4: Upload receipt/proof (for bank transfers)
- * - Confirmation and success message
+ * - Direct welfare request funding (via requestId param).
+ * - Multi-mode payment: 'Online' or 'Bank Transfer'.
+ * - Receipt proof upload for manual bank transfers.
+ * - Dynamic receipt generation for printing/downloading.
+ * - Anonymous donation option for privacy.
  * 
- * URL parameters:
- * - requestId: Pre-select welfare request to fund
- * - amount: Pre-fill donation amount
- * - description: Pre-fill request description
- * 
- * Flow: Select amount → Choose request/general → Payment method → Upload proof (if needed) → Confirm → Submit
+ * Routing Params:
+ * - requestId: Target student request ID.
+ * - amount: Pre-calculated required amount.
  */
 
 import { useState, useRef } from 'react';
@@ -52,6 +47,11 @@ const MakeDonation = () => {
   const [receiptFile, setReceiptFile] = useState(null);
   const receiptRef = useRef();
 
+  /**
+   * RECEIPT GENERATION
+   * Purpose: Generates a printable HTML receipt in a new window.
+   * Action: Clones local UI state into a print-specialized DOM structure.
+   */
   const handlePrintReceipt = () => {
     const printContent = receiptRef.current.innerHTML;
     const windowPrint = window.open('', '', 'left=0,top=0,width=800,height=900,toolbar=0,scrollbars=0,status=0');
@@ -100,6 +100,15 @@ const MakeDonation = () => {
 
   const PRESET_AMOUNTS = [1000, 2500, 5000, 10000];
 
+  /**
+   * DONATION SUBMISSION HANDLER
+   * Purpose: Orchestrates the financial contribution recording.
+   * Action: POST /donations (Multipart/formData)
+   * Logic:
+   * - Standardizes payment method names for backend (ONLINE vs BANK_TRANSFER).
+   * - Handles optional receipt file upload if manual transfer is selected.
+   * Validation: Ensures amount and (if needed) physical receipt are present.
+   */
   const handleDonate = async () => {
     const finalAmount = amount === 'custom' ? customAmount : amount;
 
@@ -119,7 +128,7 @@ const MakeDonation = () => {
       const numericAmount = parseFloat(finalAmount.toString().replace(/,/g, ''));
       const isAnonymous = document.getElementById('anonymous')?.checked || false;
 
-      // Use FormData if sending file
+      // Logic: Use FormData to support binary file uploads (receipts)
       const formData = new FormData();
       formData.append('amount', numericAmount);
       formData.append('description', paramDesc || 'General Donation');
@@ -137,9 +146,7 @@ const MakeDonation = () => {
         formData.append('receipt', receiptFile);
       }
 
-      await client.post('/donations', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await client.post('/donations', formData);
 
       setSuccess(true);
       toast.success("Thank you! Your donation has been processed.");

@@ -21,6 +21,7 @@ const CircularRecipient = require('./CircularRecipient');
 const CircularAttachment = require('./CircularAttachment');
 const MonthlyReport = require('./MonthlyReport');
 const Notification = require('./Notification');
+const WelfareType = require('./WelfareType');
 
 // --- Associations ---
 
@@ -133,5 +134,6 @@ module.exports = {
     CircularRecipient,
     CircularAttachment,
     MonthlyReport,
-    Notification
+    Notification,
+    WelfareType
 };

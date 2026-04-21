@@ -12,11 +12,27 @@ import client from '@/services/apiClient';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 
+/**
+ * ZEO USER MANAGEMENT PAGE
+ * 
+ * File Purpose: Account provisioning and institutional staff oversight.
+ * Features:
+ * - Provisioning: Create new Principal/Teacher accounts with temporary credentials.
+ * - Discovery: Search staff by name/email and filter by assigned school.
+ * - Profile Editing: Remotely update teacher subject specializations.
+ * - Cleanup: Administrative deletion of staff accounts.
+ */
+
 const UserManagement = () => {
   const [principals, setPrincipals] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Edit subjects modal state
+  const [editSubjectModal, setEditSubjectModal] = useState(null); // { userId, name, currentSubjects }
+  const [newSubjectValue, setNewSubjectValue] = useState('');
+  const [savingSubjects, setSavingSubjects] = useState(false);
 
   // Form State
   const [newUser, setNewUser] = useState({
@@ -50,10 +66,22 @@ const UserManagement = () => {
     }
   };
 
+  /**
+   * ACCOUNT PROVISIONING HANDLER
+   * Purpose: Creates a new Principal or Teacher account within the zone.
+   * Action: 
+   * 1. Submits user details (name, email, role, school) to the admin creation endpoint.
+   * 2. Displays the generated temporary password in a long-duration toast for the admin to copy.
+   * 3. Refreshes the user list.
+   * Validation: Backend handles email uniqueness and mandatory field checks.
+   */
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
+      // API call: Triggers backend user creation and initial profile setup
       const { data } = await client.post('/auth/admin/create-user', newUser);
+      
+      // UX: Long-duration success toast for credential capture
       toast.success(
         <div className="space-y-2">
           <p>User created successfully!</p>
@@ -64,7 +92,7 @@ const UserManagement = () => {
         </div>,
         { duration: 10000 }
       );
-      fetchData();
+      fetchData(); // Step: Refresh UI list
       setNewUser({ name: '', email: '', schoolId: '', role: 'TEACHER', subjects: '' });
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to create user");
@@ -82,8 +110,40 @@ const UserManagement = () => {
     }
   };
 
+  const openEditSubjects = (user) => {
+    const current = user.teacherProfile?.subjects?.join(', ') || '';
+    setNewSubjectValue(current);
+    setEditSubjectModal({ userId: user.id, name: user.fullName || user.name });
+  };
+
+  /**
+   * SUBJECT MANAGEMENT HANDLER
+   * Purpose: Updates the set of subjects taught by a specific teacher.
+   * Action: PUT request to admin subject update endpoint.
+   * Validation: Ensures input is formatted correctly before submission.
+   */
+  const handleSaveSubjects = async () => {
+    setSavingSubjects(true);
+    try {
+      await client.put(`/auth/admin/teacher-subjects/${editSubjectModal.userId}`, { subjects: newSubjectValue });
+      toast.success('Subjects updated successfully!');
+      setEditSubjectModal(null);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update subjects');
+    } finally {
+      setSavingSubjects(false);
+    }
+  };
+
+  /**
+   * USER GRID RENDERER
+   * Purpose: Displays profile cards for staff members.
+   * Elements: Avatar, Action buttons (Delete/Edit Subjects), Role badges, and institutional data.
+   */
   const renderUserGrid = (usersList) => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* ... grid content ... */}
       {usersList.length === 0 ? (
         <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed border-slate-100">
            <Users className="w-12 h-12 mx-auto mb-4 opacity-5" />
@@ -127,9 +187,19 @@ const UserManagement = () => {
                     <span className="line-clamp-1">{user.schoolData?.name || 'Zonal Resource'}</span>
                   </div>
                   {user.role === 'TEACHER' && (
-                    <div className="flex items-center gap-3 text-sm text-slate-500 font-medium">
-                      <BookOpen className="w-4 h-4 text-slate-300" />
-                      <span>{user.teacherProfile?.subjects?.join(', ') || 'General Studies'}</span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-3 text-sm text-slate-500 font-medium">
+                        <BookOpen className="w-4 h-4 text-slate-300" />
+                        <span>{user.teacherProfile?.subjects?.join(', ') || 'No subjects assigned'}</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full mt-2 text-xs text-blue-600 border-blue-200 hover:bg-blue-50"
+                        onClick={() => openEditSubjects(user)}
+                      >
+                        <BookOpen className="w-3 h-3 mr-1" /> Edit Subjects
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -144,6 +214,36 @@ const UserManagement = () => {
   return (
     <DashboardLayout>
       <div className="space-y-8">
+
+        {/* Edit Subjects Modal */}
+        {editSubjectModal && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
+              <h2 className="text-lg font-bold">Edit Subjects — {editSubjectModal.name}</h2>
+              <p className="text-sm text-slate-500">Enter subjects separated by commas (e.g. English, Mathematics)</p>
+              <input
+                type="text"
+                className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={newSubjectValue}
+                onChange={e => setNewSubjectValue(e.target.value)}
+                placeholder="e.g. English, Science, History"
+              />
+              <div className="flex gap-3 pt-2">
+                <Button
+                  className="flex-1 bg-blue-600 hover:bg-blue-700"
+                  onClick={handleSaveSubjects}
+                  disabled={savingSubjects}
+                >
+                  {savingSubjects ? 'Saving...' : 'Save Subjects'}
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={() => setEditSubjectModal(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 underline decoration-blue-500 decoration-4 underline-offset-8">User Management</h1>
@@ -203,7 +303,12 @@ const UserManagement = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Create User Form Section */}
+        {/* 
+          PROVISIONING FORM
+          Purpose: Interface for adding new personnel to the system.
+          Elements: Managed inputs for Identity, Role, and Location.
+          Action: Triggers handleCreateUser on final submission.
+        */}
         <div id="create-user-form" className="pt-12 border-t border-dashed">
            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
              <UserPlus className="w-5 h-5 text-blue-600" /> Administrative Provisioning

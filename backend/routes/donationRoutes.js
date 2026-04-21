@@ -24,7 +24,7 @@ const { asyncHandler } = require('../middleware/errorHandler');
 const upload = require('../middleware/uploadMiddleware');
 
 router.post('/', protect, upload.single('receipt'), validationRules.donation(), validate, asyncHandler(createDonation));
-router.get('/', protect, validationRules.pagination(), validate, asyncHandler(getDonations));
+router.get('/', protect, validationRules.pagination(), asyncHandler(getDonations));
 router.get('/stats', asyncHandler(getStats));
 router.patch('/:id/verify', protect, authorize('ZEO'), validationRules.donationVerification(), validate, asyncHandler(verifyDonation));
 

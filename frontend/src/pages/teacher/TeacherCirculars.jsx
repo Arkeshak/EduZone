@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Bell, Calendar, Eye, Clock, FileText, ChevronRight } from 'lucide-react';
+import { Bell, Calendar, Eye, Clock, FileText, ChevronRight, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import client from '@/services/apiClient';
+import client, { API_BASE_URL } from '@/services/apiClient';
 import {
   Dialog,
   DialogContent,
@@ -13,11 +13,28 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+/**
+ * TEACHER CIRCULARS PAGE
+ * 
+ * File Purpose: Read-only feed of official communications from the ZEO.
+ * Features:
+ * - Card-based list view of announcements.
+ * - "Focused Reading View" (Digital Modal) for detailed message display.
+ * - PDF attachment integration for official circular documents.
+ * 
+ * Security: Staff-only view, distinct from public resources.
+ */
+
 const TeacherCirculars = () => {
   const [circulars, setCirculars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCircular, setSelectedCircular] = useState(null);
 
+  /**
+   * DATA INITIALIZATION
+   * Purpose: Retrieves all active official circulars.
+   * API: GET /circulars
+   */
   useEffect(() => {
     fetchCirculars();
   }, []);
@@ -91,6 +108,7 @@ const TeacherCirculars = () => {
                       variant="ghost" 
                       size="sm" 
                       className="font-black text-[10px] uppercase tracking-widest text-blue-600 hover:bg-blue-50 h-8 px-3"
+                      onClick={() => setSelectedCircular(circular)}
                     >
                       Read Now <ChevronRight className="w-3.5 h-3.5 ml-1" />
                     </Button>
@@ -125,7 +143,34 @@ const TeacherCirculars = () => {
               </div>
             </div>
 
-            <div className="flex justify-end pt-4">
+            {selectedCircular?.attachments && selectedCircular.attachments.length > 0 && (
+              <div className="py-4 px-6 bg-slate-50 rounded-xl border border-slate-200 mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-800">Circular PDF</p>
+                    <p className="text-xs text-slate-500 font-medium tracking-tight">Official attachment for this notice</p>
+                  </div>
+                </div>
+                <Button 
+                  asChild 
+                  className="bg-blue-600 hover:bg-blue-700 shadow-md h-10 px-6 font-bold flex gap-2"
+                >
+                  <a 
+                    href={`${API_BASE_URL}${selectedCircular.attachments[0].fileUrl}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    download
+                  >
+                    <Download className="w-4 h-4" /> Download PDF
+                  </a>
+                </Button>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-6 gap-3">
                <Button onClick={() => setSelectedCircular(null)} className="font-bold bg-slate-900 px-8 h-12 shadow-lg">Acknowledged</Button>
             </div>
           </DialogContent>

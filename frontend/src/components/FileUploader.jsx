@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FILE UPLOADER COMPONENT
  * 
  * File Purpose: Reusable drag-and-drop file upload UI component
@@ -24,12 +24,27 @@
 import React from 'react';
 import { Upload } from 'lucide-react';
 
+/**
+ * FileUploader Component
+ * Purpose: Reusable UI component for selecting files (documents, images) with drag-and-drop support.
+ */
 const FileUploader = ({ id = "file-upload", label, accept = ".pdf,.doc,.docx,.jpg,.jpeg,.png", onChange, file, helperText = "PDF, DOC, JPG up to 10MB" }) => {
     return (
         <div>
-            {label && <label className="block text-sm mb-2">{label}</label>}
-            <div className="border-2 border-dashed border-gray-300 rounded-md p-6 text-center">
-                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+            {/* 
+              LABEL
+              Purpose: Accessibility label for the uploader.
+            */}
+            {label && <label className="block text-sm font-medium text-slate-700 mb-2">{label}</label>}
+            
+            {/* 
+              UPLOAD ZONE
+              Purpose: Visual area for drag-and-drop or clicking to select files.
+              Elements: Upload icon, hidden file input, and clickable label.
+              Action: Clicking triggers the hidden input's file selection dialog.
+            */}
+            <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center bg-white hover:bg-slate-50 transition-colors group">
+                <Upload className="w-10 h-10 text-slate-400 mx-auto mb-3 group-hover:text-blue-500 transition-colors" />
                 <input
                     type="file"
                     id={id}
@@ -38,12 +53,26 @@ const FileUploader = ({ id = "file-upload", label, accept = ".pdf,.doc,.docx,.jp
                     className="hidden"
                 />
                 <label htmlFor={id} className="cursor-pointer">
-                    <span className="text-blue-600 hover:underline">Upload a file</span>
-                    <span className="text-gray-500"> or drag and drop</span>
+                    <span className="text-blue-600 font-semibold hover:text-blue-700 transition-colors">Upload a file</span>
+                    <span className="text-slate-500"> or drag and drop</span>
                 </label>
-                {helperText && <p className="text-xs text-gray-500 mt-1">{helperText}</p>}
+                
+                {/* 
+                  HELPER TEXT
+                  Purpose: Inform user of supported formats and size limits.
+                */}
+                {helperText && <p className="text-xs text-slate-500 mt-2 tracking-wide uppercase font-medium">{helperText}</p>}
+                
+                {/* 
+                  SELECTED FILE INDICATOR
+                  Purpose: Show the user which file is currently staged for upload.
+                  Shown when: A file has been selected via the input.
+                */}
                 {file && (
-                    <p className="text-sm text-green-600 mt-2 font-medium">{file.name}</p>
+                    <div className="mt-4 p-2 bg-green-50 border border-green-100 rounded-lg inline-flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <p className="text-sm text-green-700 font-bold">{file.name}</p>
+                    </div>
                 )}
             </div>
         </div>

@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { SUBJECTS, GRADES } from '@/utils/subjects';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,6 +13,18 @@ import client from '@/services/apiClient';
 import { useNavigate } from 'react-router-dom';
 import FileUploader from '@/components/FileUploader';
 
+/**
+ * UPLOAD RESOURCE PAGE
+ * 
+ * File Purpose: Creation form for teachers to share study materials.
+ * Features:
+ * - Metadata capture: Title, Grade, Subject, Description.
+ * - Multi-format file support (PDF, JPG, DOC).
+ * - Immediate visual feedback on successful upload.
+ * 
+ * Flow: Fill metadata → Select file → Post multipart form → Show success state.
+ */
+
 const UploadResource = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -25,6 +37,14 @@ const UploadResource = () => {
   });
   const [file, setFile] = useState(null);
 
+  /**
+   * RESOURCE SUBMISSION HANDLER
+   * Purpose: Packages metadata and local file for server persistence.
+   * Action: POST /resources (Multipart)
+   * Validation:
+   * - Ensures a file is physically selected before attempting network request.
+   * - Sets success state to toggle UI between form and acknowledgment view.
+   */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!file) return toast.error("Please select a file to upload");
