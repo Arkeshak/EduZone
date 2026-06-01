@@ -1,28 +1,18 @@
-﻿/**
+import { Navigate, useLocation } from 'react-router-dom'; // Core routing tools
+import { useAuth } from '@/context/AuthContext'; // Access global auth state
+
+/**
  * PROTECTED ROUTE COMPONENT
  * 
- * File Purpose: Middleware component that guards routes requiring authentication
- * Used for: Preventing unauthorized access to protected pages
- * 
- * Functionality:
- * - Checks if user is authenticated (logged in)
- * - Shows loading spinner while checking auth status
- * - Redirects to login if not authenticated
- * - Checks if user has required role
- * - Redirects to /unauthorized if user lacks permission
- * 
- * Usage:
- * <ProtectedRoute allowedRoles={['TEACHER', 'PRINCIPAL']}>
- *   <TeacherDashboard />
- * </ProtectedRoute>
+ * Purpose: Acts as a "Security Guard" for private dashboard pages.
+ * It checks if the user is logged in and if they have the correct role.
  */
-
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-
 const ProtectedRoute = ({ children, allowedRoles }) => {
+  // Extract user info and loading state from context
   const { user, role, loading } = useAuth();
+  const location = useLocation(); // To remember where user was trying to go
 
+  // While app is still checking for existing session
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -31,14 +21,17 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     );
   }
 
+  // REDIRECT 1: If user is not logged in, send them back to login page
   if (!user || !role) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
+  // REDIRECT 2: If user role doesn't match page permissions, send to Unauthorized
   if (allowedRoles && !allowedRoles.includes(role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 
+  // SUCCESS: Show the requested page
   return children;
 };
 

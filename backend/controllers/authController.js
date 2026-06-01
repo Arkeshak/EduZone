@@ -36,7 +36,9 @@ const generateAccessToken = (user) => {
     return jwt.sign({
         type: 'access',
         id: user.id,
-        role: user.role
+        role: user.role,
+        fullName: user.fullName || user.name,
+        profilePicture: user.profilePicture
     }, ACCESS_TOKEN_SECRET, {
         expiresIn: JWT_ACCESS_EXPIRY,
         issuer: JWT_ISSUER,
@@ -398,6 +400,7 @@ const loginUser = async (req, res) => {
                 role: user.role,
                 school: schoolName,
                 schoolId: schoolId,
+                profilePicture: user.profilePicture,
                 token: accessToken,
                 refreshToken: refreshToken
             });

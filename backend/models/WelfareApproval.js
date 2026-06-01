@@ -22,7 +22,7 @@ const WelfareApproval = db.define('WelfareApproval', {
         allowNull: false
     },
     decision: {
-        type: DataTypes.ENUM('APPROVED', 'REJECTED'),
+        type: DataTypes.ENUM('APPROVED', 'REJECTED', 'TRANSFERRED'),
         allowNull: false
     },
     remarks: {

@@ -1,9 +1,7 @@
 import { useState, useRef } from 'react';
 import { Camera, User, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import client from '@/services/apiClient';
-
-const BACKEND_URL = 'http://localhost:5000';
+import client, { API_BASE_URL } from '@/services/apiClient';
 
 /**
  * ProfilePictureUpload
@@ -36,7 +34,7 @@ const ProfilePictureUpload = ({ currentPicture, onUploadSuccess, size = 'md', sh
   const imageUrl = preview
     ? preview
     : currentPicture
-    ? `${BACKEND_URL}${currentPicture}`
+    ? `${API_BASE_URL}${currentPicture}`
     : null;
 
   const handleFileChange = async (e) => {

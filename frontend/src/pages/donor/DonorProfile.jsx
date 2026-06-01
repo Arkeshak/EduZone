@@ -99,8 +99,10 @@ const DonorProfile = () => {
       }
     };
 
-    fetchProfileData();
-  }, []);
+    if (authUser?.id) {
+      fetchProfileData();
+    }
+  }, [authUser?.id]); // Re-fetch if auth user changes
 
   const handleSave = async () => {
     setUpdating(true);
@@ -151,7 +153,7 @@ const DonorProfile = () => {
             {/* Avatar Section */}
             <div className="absolute -top-12 left-8">
               <ProfilePictureUpload
-                currentPicture={profilePicture}
+                currentPicture={profilePicture || authUser?.profilePicture}
                 onUploadSuccess={(url) => {
                   setProfilePicture(url);
                   refreshUser();

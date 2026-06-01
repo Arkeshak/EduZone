@@ -23,7 +23,7 @@ import ChangePassword from '@/components/ChangePassword';
  */
 
 const ZEOProfile = () => {
-  const { refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -38,7 +38,7 @@ const ZEOProfile = () => {
 
   useEffect(() => {
     fetchProfileData();
-  }, []);
+  }, [user?.id]); // Re-fetch if user changed
 
   /**
    * DATA FETCHING: Administrative Profile
@@ -51,7 +51,7 @@ const ZEOProfile = () => {
       const { data } = await client.get('/auth/me');
       
       setFormData({
-        fullName: data.fullName || '',
+        fullName: data.fullName || data.name || '',
         email: data.email || '',
         contactNumber: data.profile?.contactNumber || '',
         address: data.profile?.address || ''
@@ -128,7 +128,7 @@ const ZEOProfile = () => {
                         <div className="flex items-center gap-6">
                             <div className="relative">
                                 <ProfilePictureUpload
-                                  currentPicture={profilePicture}
+                                  currentPicture={profilePicture || user?.profilePicture}
                                   onUploadSuccess={(url) => {
                                     setProfilePicture(url);
                                     refreshUser();

@@ -24,3 +24,12 @@ Stack: MulterError: File too large
     at _write (node:internal/streams/writable:501:10)
     at Writable.write (node:internal/streams/writable:510:10)
 
+[2026-04-21T16:58:00.624Z] POST /api/welfare - Can't add new command when connection is in closed state
+Stack: Error
+    at Query.run (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\sequelize\lib\dialects\mysql\query.js:52:25)
+    at C:\Users\ASUS\Desktop\EduZone\backend\node_modules\sequelize\lib\sequelize.js:315:28
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async MySQLQueryInterface.rollbackTransaction (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\sequelize\lib\dialects\abstract\query-interface.js:565:12)
+    at async Transaction.rollback (C:\Users\ASUS\Desktop\EduZone\backend\node_modules\sequelize\lib\transaction.js:65:7)
+    at async createRequest (C:\Users\ASUS\Desktop\EduZone\backend\controllers\welfareController.js:147:26)
+

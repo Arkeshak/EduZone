@@ -1,29 +1,20 @@
-/**
- * DONOR REGISTRATION PAGE  
- * 
- * File Purpose: Allow donors to create new accounts
- * Used for: Donor signup with email verification
- * 
- * Features:
- * - Full name, email, password form
- * - Optional organization name and phone
- * - Password strength validation
- * - Email verification step
- * - Loading/error states
- * - Account activation after verification
- * 
- * Flow: Fill form → Submit → Receive verification email → Enter code → Account activated → Redirect to login
- */
-
 import { useState } from 'react';
-import { validatePassword } from '@/utils/passwordValidation';
-import { useNavigate, Link } from 'react-router-dom';
-import { GraduationCap, User, Mail, Lock, Phone, MapPin, AlertCircle, CheckCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import { authApi } from '@/services/authService';
-import donationBg from '../assets/donation_hero.png';
+import { validatePassword } from '@/utils/passwordValidation'; // Utility to check password strength
+import { useNavigate, Link } from 'react-router-dom'; // Hooks for navigation
+import { GraduationCap, User, Mail, Lock, Phone, MapPin, AlertCircle, CheckCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react'; // UI Icons
+import LoadingSpinner from '@/components/LoadingSpinner'; // Loader for API calls
+import FormInput from '@/components/FormInput'; // REUSABLE COMPONENT: Standardizes all inputs
+import { authApi } from '@/services/authService'; // API library for donor registration
+import donationBg from '../assets/donation_hero.png'; // Background brand image
 
+/**
+ * DONOR REGISTRATION PAGE COMPONENT
+ * 
+ * File Purpose: Allows new institutional or individual donors to join the EduZone platform.
+ * Features: Multi-step flow (Form -> Email Verification -> Success).
+ */
 const DonorRegistration = () => {
+  // state for all registration fields
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -33,25 +24,28 @@ const DonorRegistration = () => {
     address: '',
     organizationName: '',
   });
+
+  // state to toggle password visibility
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // state for the 6-digit email verification code
   const [verificationCode, setVerificationCode] = useState('');
+
+  // state to toggle between registration form and verification screen
   const [isVerifying, setIsVerifying] = useState(false);
+
+  // Error/Success and Loading indicators
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   /**
-   * REGISTRATION FORM HANDLER
-   * Purpose: Collects donor details and initiates the account creation process.
-   * Action: 
-   * 1. Validates password equality and strength.
-   * 2. Calls backend registration API.
-   * 3. Switches the UI to the 'Verification' screen on success.
-   * Validation: 
-   * - Checks if passwords match.
-   * - Uses a helper utility for password complexity.
+   * INITIAL REGISTRATION SUBMISSION
+   * Purpose: Validates form and triggers verification email
+   * When it runs: When user clicks "Register as Donor"
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -90,12 +84,9 @@ const DonorRegistration = () => {
   };
 
   /**
-   * EMAIL VERIFICATION HANDLER
-   * Purpose: Validates the 6-digit code sent to the user's email.
-   * Action:
-   * 1. Submits email and code to the verification endpoint.
-   * 2. Shows the success screen and redirects to login.
-   * Validation: Displays error if code is incorrect or expired.
+   * EMAIL VERIFICATION COMPLETION
+   * Purpose: Validates the one-time code and activates account
+   * When it runs: After user enters the 6-digit code from their email
    */
   const handleVerify = async (e) => {
     e.preventDefault();
@@ -108,7 +99,7 @@ const DonorRegistration = () => {
         code: verificationCode
       });
       setSuccess(true);
-      // Brief delay to allow user to see the success message
+      // Auto-redirect to login page after a brief success message
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Verification failed. Please check your code.');
@@ -117,14 +108,14 @@ const DonorRegistration = () => {
     }
   };
 
-  // SUCCESS SCREEN
-  // Purpose: Shown after successful email verification
-  // Elements: Success check icon, confirmation message
-  // Action: Automatically redirects user to login page after 2 seconds
+  /**
+   * SUCCESS SCREEN UI
+   * Purpose: Congratulate the user on successful registration
+   */
   if (success) {
     return (
       <div className="min-h-screen relative flex items-center justify-center p-4">
-        {/* Background Image & Overlay */}
+        {/* BRANDED BACKGROUND with green success overlay */}
         <div className="absolute inset-0 z-0">
           <img src={donationBg} alt="Background" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-br from-green-900/90 to-slate-900/90 backdrop-blur-sm"></div>
@@ -141,14 +132,14 @@ const DonorRegistration = () => {
     );
   }
 
-  // VERIFICATION SCREEN
-  // Purpose: Shown after user submits registration form
-  // Action: Expects user to enter the 6-digit code from their email
-  // Elements: Large numeric input for verification code
+  /**
+   * VERIFICATION SCREEN UI
+   * Purpose: Collect the verification code sent to email
+   */
   if (isVerifying) {
     return (
       <div className="min-h-screen relative flex items-center justify-center p-4">
-        {/* Background Image & Overlay */}
+        {/* BRANDED BACKGROUND with pink donor overlay */}
         <div className="absolute inset-0 z-0">
           <img src={donationBg} alt="Background" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-br from-pink-900/90 to-slate-900/90 backdrop-blur-sm"></div>
@@ -161,6 +152,7 @@ const DonorRegistration = () => {
           <h2 className="text-3xl font-bold text-white mb-2">Verify Your Email</h2>
           <p className="text-slate-300 mb-8">We've sent a 6-digit code to <b>{formData.email}</b>. Please enter it below.</p>
 
+          {/* ERROR ALERT BOX */}
           {error && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-200 text-sm backdrop-blur-md">
               <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400" />
@@ -169,12 +161,6 @@ const DonorRegistration = () => {
           )}
 
           <form onSubmit={handleVerify} className="space-y-6">
-            {/* 
-              VERIFICATION CODE INPUT
-              Purpose: Collect the unique code sent to the email address
-              Action: Updates verificationCode state
-              Validation: Maximum 6 characters
-            */}
             <input
               type="text"
               required
@@ -203,15 +189,17 @@ const DonorRegistration = () => {
     );
   }
 
+  // MAIN REGISTRATION FORM UI
   return (
     <div className="min-h-screen relative flex items-center justify-center p-4">
-      {/* Background Image & Overlay */}
+      {/* BRANDED BACKGROUND */}
       <div className="absolute inset-0 z-0">
         <img src={donationBg} alt="Background" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-br from-pink-900/90 to-slate-900/90 backdrop-blur-sm"></div>
       </div>
 
       <div className="max-w-2xl w-full relative z-10 animate-in fade-in slide-in-from-bottom-8 duration-500">
+        {/* EXIT ACTION */}
         <Link to="/login" className="inline-flex items-center text-sm text-slate-300 hover:text-white mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Login
         </Link>
@@ -223,6 +211,7 @@ const DonorRegistration = () => {
           <p className="text-pink-200 text-lg font-medium">Join us in supporting students in need</p>
         </div>
 
+        {/* REGISTRATION CARD */}
         <div className="bg-white/10 backdrop-blur-xl rounded-[2rem] border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)] p-8 md:p-10">
           {error && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-200 text-sm backdrop-blur-md">
@@ -233,217 +222,102 @@ const DonorRegistration = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Full Name</label>
-                {/* 
-                  FULL NAME INPUT FIELD
-                  Purpose: Collect donor's full name
-                  Icon: User icon inside input on left
-                  Validation: Required field
-                  Action: On change, updates formData.name state
-                  Used for: Identifying donor for records
-                */}
-                <div className="relative group">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
-                    placeholder="enter your name...."
-                  />
-                </div>
-              </div>
+              {/* FULL NAME INPUT (Using reusable FormInput) */}
+              <FormInput
+                label="Full Name"
+                icon={User}
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="enter your name...."
+              />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Email Address</label>
-                {/* 
-                  EMAIL INPUT FIELD
-                  Purpose: Collect donor's email address (will be verified)
-                  Icon: Mail icon inside input on left
-                  Validation: Required field, must be valid email format
-                  Action: On change, updates formData.email state
-                  Used for: Login credentials and verification code delivery
-                */}
-                <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
-                    placeholder="enter your email...."
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Password</label>
-                {/* 
-                  PASSWORD INPUT FIELD
-                  Purpose: Collect strong password for account
-                  Icon: Lock icon inside input on left
-                  Visibility: Hidden by default (shows as dots)
-                  Toggle: Eye icon on right to show/hide password
-                  Validation: Required field, must be strong password
-                  Requirements: Minimum 8 chars, uppercase, lowercase, number, special char
-                  Action: On change, updates formData.password state
-                  Used for: Account security
-                */}
-                <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full pl-12 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
-                    placeholder="enter your password...."
-                  />
-                  {/* 
-                    PASSWORD VISIBILITY TOGGLE (Password Field)
-                    Purpose: Show/hide password text
-                    Icon: Eye icon (closed when hidden, open when visible)
-                    Action: Click to toggle visibility
-                    Location: Right side inside password field
-                    Used for: Verify password was typed correctly
-                  */}
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors focus:outline-none"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 ml-1">Confirm Password</label>
-                {/* 
-                  CONFIRM PASSWORD INPUT FIELD
-                  Purpose: Verify password was typed correctly (must match Password field)
-                  Icon: Lock icon inside input on left
-                  Visibility: Hidden by default (shows as dots)
-                  Toggle: Eye icon on right to show/hide
-                  Validation: Required field, must match password field
-                  Action: On change, updates formData.confirmPassword state
-                  Used for: Prevent typos, ensure user knows their password
-                */}
-                <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    required
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full pl-12 pr-12 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
-                    placeholder="enter your confirm password...."
-                  />
-                  {/* 
-                    CONFIRM PASSWORD VISIBILITY TOGGLE
-                    Purpose: Show/hide confirm password text
-                    Icon: Eye icon (closed when hidden, open when visible)
-                    Action: Click to toggle visibility
-                    Location: Right side inside field
-                    Used for: Check both passwords match
-                  */}
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors focus:outline-none"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 ml-1">Phone Number</label>
-              {/* 
-                PHONE NUMBER INPUT FIELD
-                Purpose: Collect donor's contact phone number
-                Icon: Phone icon inside input on left
-                Validation: Required field
-                Format: Tel input type (accepts phone numbers)
-                Action: On change, updates formData.phone state
-                Used for: Contact information and verification
-              */}
-              <div className="relative group">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
-                <input
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
-                  placeholder="enter your phone number...."
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 ml-1">Address</label>
-              {/* 
-                ADDRESS TEXTAREA FIELD
-                Purpose: Collect donor's physical address
-                Icon: Location/map pin icon at top left
-                Validation: Required field
-                Type: Textarea (multi-line text)
-                Height: Minimum 100px (about 4 lines)
-                Action: On change, updates formData.address state
-                Used for: Mailing address and contact purposes
-              */}
-              <div className="relative group">
-                <MapPin className="absolute left-4 top-4 w-5 h-5 text-slate-400 group-focus-within:text-white transition-colors" />
-                <textarea
-                  required
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all min-h-[100px]"
-                  placeholder="enter your address...."
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 ml-1">Organization Name (Optional)</label>
-              {/* 
-                ORGANIZATION NAME INPUT FIELD
-                Purpose: Collect donor's organization/company name
-                Optional: Not required (for individual donors)
-                Icon: None
-                Action: On change, updates formData.organizationName state
-                Used for: Records if donor is from an organization
-              */}
-              <input
-                type="text"
-                value={formData.organizationName}
-                onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-white/30 focus:bg-white/10 focus:ring-1 focus:ring-white/20 transition-all"
-                placeholder="enter your organization (optional)...."
+              {/* EMAIL INPUT (Using reusable FormInput) */}
+              <FormInput
+                label="Email Address"
+                icon={Mail}
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="enter your email...."
               />
             </div>
 
-            {/* 
-              REGISTER AS DONOR BUTTON (Main Submit Button)
-              Purpose: Submit registration form and create donor account
-              Color: Pink (donor portal color)
-              Size: Full width
-              States:
-              - Normal: Pink, clickable, scalable on hover
-              - Hover: Brighter pink, scales up slightly (1.02x)
-              - Loading: Shows spinner, disabled, opacity reduced
-              Action: Click to validate form and submit to backend
-              Result on success: Account created, verification email sent, shows verification screen
-              Result on failure: Error message shown above form
-              Used for: Main registration action
-            */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* PASSWORD INPUT (Using reusable FormInput + Toggle) */}
+              <div className="relative">
+                <FormInput
+                  label="Password"
+                  icon={Lock}
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="enter your password...."
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-[42px] text-slate-400 hover:text-white transition-colors focus:outline-none"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+
+              {/* CONFIRM PASSWORD INPUT (Using reusable FormInput + Toggle) */}
+              <div className="relative">
+                <FormInput
+                  label="Confirm Password"
+                  icon={Lock}
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  placeholder="enter your confirm password...."
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-[42px] text-slate-400 hover:text-white transition-colors focus:outline-none"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            {/* PHONE NUMBER (Using reusable FormInput) */}
+            <FormInput
+              label="Phone Number"
+              icon={Phone}
+              type="tel"
+              required
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="enter your phone number...."
+            />
+
+            {/* ADDRESS (Using reusable FormInput as textarea) */}
+            <FormInput
+              label="Address"
+              icon={MapPin}
+              required
+              as="textarea"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              placeholder="enter your address...."
+              className="min-h-[100px]"
+            />
+
+            {/* ORGANIZATION NAME (Optional) */}
+            <FormInput
+              label="Organization Name (Optional)"
+              value={formData.organizationName}
+              onChange={(e) => setFormData({ ...formData, organizationName: e.target.value })}
+              placeholder="enter your organization (optional)...."
+            />
+
+            {/* PRIMARY SUBMIT BUTTON */}
             <button
               type="submit"
               disabled={loading}
@@ -453,16 +327,8 @@ const DonorRegistration = () => {
             </button>
           </form>
 
+          {/* FOOTER NAVIGATION */}
           <div className="mt-8 text-center pt-6 border-t border-white/10">
-            {/* 
-              LOGIN LINK (Footer)
-              Purpose: Navigate to login page for existing donors
-              Text: "Already have an account? Login here"
-              Color: Pink (donor portal color) - brighter on hover
-              Location: Bottom of registration form
-              Action: Click to go to login page
-              Used for: Existing donors who accidentally came to registration instead of login
-            */}
             <p className="text-sm text-slate-300">
               Already have an account?{' '}
               <Link to="/login" className="text-pink-400 hover:text-white transition-colors font-bold">

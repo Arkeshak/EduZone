@@ -1,44 +1,37 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import DashboardLayout from '@/layouts/DashboardLayout'; // Main portal layout
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'; // UI Library cards
+import { Button } from '@/components/ui/button'; // UI Library buttons
+import { Badge } from '@/components/ui/badge'; // UI Library badges
+import { School, Search, Filter, Info, Target, TrendingUp } from 'lucide-react'; // Icons
+import { toast } from 'sonner'; // Notifications
+import client from '@/services/apiClient'; // API tool
+import LoadingSpinner from '@/components/LoadingSpinner'; // Loader
+import donationHero from '@/assets/donation_hero.png'; // Header image
+import { Input } from '@/components/ui/input'; // Text input
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'; // Modal/Popup
+import { Progress } from '@/components/ui/progress'; // Progress bar
+
 /**
  * BROWSE WELFARE REQUESTS PAGE
  * 
- * File Purpose: Display published welfare requests available for donor funding
- * Used for: Donors browsing and selecting requests to support
- * 
- * Features:
- * - List of all published welfare requests
- * - Filter/search by school, student name, category
- * - Show request details (amount needed, category, student info)
- * - Quick action "Donate" button
- * - Hero section with donation messaging
- * 
- * Data: Fetches from /welfare/published (only approved and published requests)
- * Access: Public (donors and non-logged-in users can browse)
- * Security: Shows only published requests, school bank details not shown here
+ * Purpose: Allows donors and the public to view verified student needs 
+ * and choose which ones to support financially.
  */
-
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import DashboardLayout from '@/layouts/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { School, Search, Filter, Info, Target, TrendingUp } from 'lucide-react';
-import { toast } from 'sonner';
-import client from '@/services/apiClient';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import donationHero from '@/assets/donation_hero.png';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-
 const BrowseWelfareRequests = () => {
+  // STATE: Master list of all requests from the server
   const [requests, setRequests] = useState([]);
+  
+  // STATE: The list currently shown (after search/filter is applied)
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // STATE: Search bar text and category selection
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   
-  // Detail Modal State
+  // STATE: Controls the "Details" popup for a specific request
   const [selectedReq, setSelectedReq] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
@@ -46,18 +39,11 @@ const BrowseWelfareRequests = () => {
 
   const CATEGORIES = ['All', 'Books', 'Uniforms', 'Fees', 'Medical', 'Transport', 'Equipment', 'Food', 'Hostel'];
 
-  /**
-   * DATA FETCHING: Published Welfare Requests
-   * Purpose: Retrieves all requests that have been approved by both Principal and ZEO.
-   * Action: 
-   * 1. Calls GET /api/welfare/published (a public endpoint).
-   * 2. Extracts the request array from the potentially paginated response.
-   * 3. Syncs both 'requests' (master list) and 'filteredRequests' (view list).
-   */
+  // FETCH DATA: Gets only "Published" (Fully Approved) requests
   const fetchRequests = async () => {
     try {
       const { data } = await client.get('/welfare/published');
-      // Normalize: Extract data array regardless of backend pagination wrapper
+      // Unwrap data array from backend response
       const requestList = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
       setRequests(requestList);
       setFilteredRequests(requestList);
@@ -75,18 +61,11 @@ const BrowseWelfareRequests = () => {
     fetchRequests();
   }, []);
 
-  // Handle Filtering
-  /**
-   * FILTERING LOGIC
-   * Purpose: Dynamically narrows down visible requests based on user search or category selection.
-   * Action: 
-   * 1. Performs case-insensitive search across student name, school, and description.
-   * 2. Applies category filter if any category other than 'All' is selected.
-   */
+  // FILTER LOGIC: Updates the 'filteredRequests' whenever search or category changes
   useEffect(() => {
     let result = requests;
 
-    // Phase 1: Search Keyword Filtering
+    // Search by student name, school, or ID
     if (searchTerm) {
       const lowerSearch = searchTerm.toLowerCase();
       result = result.filter(r => 
@@ -97,7 +76,7 @@ const BrowseWelfareRequests = () => {
       );
     }
 
-    // Phase 2: Category Dropdown Filtering
+    // Filter by specific category (e.g., "Books")
     if (selectedCategory !== 'All') {
       result = result.filter(r => r.category === selectedCategory);
     }
@@ -105,10 +84,12 @@ const BrowseWelfareRequests = () => {
     setFilteredRequests(result);
   }, [searchTerm, selectedCategory, requests]);
 
+  // ACTION: Navigates to the donation payment page
   const handleDonate = (req) => {
     navigate(`/donor/make-donation?requestId=${req.id}&amount=${req.amountRequired || req.cost}&ref=${req.referenceId || req.id}&school=${req.schoolName}`);
   };
 
+  // ACTION: Opens the detail modal
   const openDetails = (req) => {
     setSelectedReq(req);
     setIsDetailModalOpen(true);
@@ -120,7 +101,7 @@ const BrowseWelfareRequests = () => {
     <DashboardLayout>
       <div className="space-y-6">
 
-        {/* HERO SECTION */}
+        {/* TOP HERO SECTION: Catchy header with image */}
         <div className="relative h-48 md:h-64 rounded-2xl overflow-hidden shadow-xl mb-8 group">
           <div className="absolute inset-0">
             <img src={donationHero} alt="Donate" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
@@ -132,7 +113,7 @@ const BrowseWelfareRequests = () => {
           </div>
         </div>
 
-        {/* SEARCH & FILTERS */}
+        {/* SEARCH & FILTERS BAR */}
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-white p-4 rounded-xl shadow-sm border">
           <div className="relative w-full lg:max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -144,6 +125,7 @@ const BrowseWelfareRequests = () => {
             />
           </div>
           
+          {/* CATEGORY TABS */}
           <div className="flex flex-wrap gap-2 w-full lg:w-auto">
             {CATEGORIES.map(cat => (
               <button
@@ -161,6 +143,7 @@ const BrowseWelfareRequests = () => {
           </div>
         </div>
 
+        {/* EMPTY STATE: Shown if no requests match filters */}
         {filteredRequests.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-80 bg-white rounded-2xl border-2 border-dashed border-gray-200 text-gray-400 px-4">
             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
@@ -173,14 +156,15 @@ const BrowseWelfareRequests = () => {
             </Button>
           </div>
         ) : (
+          /* REQUEST GRID: List of clickable request cards */
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredRequests.map((req) => {
               const reqAmount = req.amountRequired || req.cost;
-              const progress = Math.min(100, Math.round((req.collectedAmount / reqAmount) * 100));
+              const progress = Math.min(100, Math.round((req.collectedAmount / reqAmount) * 100)); // Calculate funding percentage
               const remaining = Math.max(0, reqAmount - req.collectedAmount);
 
               return (
-                <Card key={req.id} className="group flex flex-col h-full hover:shadow-2xl transition-all duration-300 border-none ring-1 ring-gray-100 overflow-hidden relative">
+                <Card key={req.id} className="group flex flex-col h-full hover:shadow-2xl transition-all duration-300 border-none ring-1 ring-gray-100 overflow-hidden relative text-slate-900">
                   <div className={`absolute top-0 left-0 w-1.5 h-full ${progress >= 100 ? 'bg-green-500' : 'bg-blue-500'}`}></div>
                   
                   <CardHeader className="pb-3 px-6 pt-6">
@@ -207,6 +191,7 @@ const BrowseWelfareRequests = () => {
                       "{req.description}"
                     </p>
                     
+                    {/* PROGRESS BAR SECTION */}
                     <div className="space-y-3">
                       <div className="flex justify-between items-end text-sm">
                         <span className="text-gray-500 font-medium">Raised: <span className="text-blue-600 font-bold">LKR {Number(req.collectedAmount).toLocaleString()}</span></span>
@@ -221,10 +206,6 @@ const BrowseWelfareRequests = () => {
                   </CardContent>
                   
                   <CardFooter className="p-6 pt-4 flex gap-3">
-                    {/* 
-                      DETAILS BUTTON
-                      Purpose: Opens the informative modal with full description and progress.
-                    */}
                     <Button 
                       variant="outline" 
                       className="flex-1 border-gray-200 hover:bg-gray-50 hover:border-blue-200"
@@ -232,11 +213,6 @@ const BrowseWelfareRequests = () => {
                     >
                       <Info className="w-4 h-4 mr-2" /> Details
                     </Button>
-                    {/* 
-                      DONATE BUTTON
-                      Purpose: Immediate path to the donation contribution form.
-                      Action: Navigates to /donor/make-donation with request metadata.
-                    */}
                     <Button
                       className="flex-1 bg-blue-600 hover:bg-blue-700 shadow-blue-200 hover:shadow-lg transition-all"
                       onClick={() => handleDonate(req)}
@@ -252,9 +228,9 @@ const BrowseWelfareRequests = () => {
         )}
       </div>
 
-      {/* Detail Modal */}
+      {/* DETAIL POPUP: Shows full info when user clicks "Details" */}
       <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl text-slate-900">
           {selectedReq && (
             <>
               <DialogHeader>
@@ -270,6 +246,7 @@ const BrowseWelfareRequests = () => {
                 </DialogDescription>
               </DialogHeader>
               
+              {/* INFORMATION GRID */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-6 border-y my-2">
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Category</span>
@@ -294,6 +271,7 @@ const BrowseWelfareRequests = () => {
                   {selectedReq.description}
                 </p>
                 
+                {/* FUNDING PROGRESS BAR */}
                 <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
@@ -313,12 +291,12 @@ const BrowseWelfareRequests = () => {
               <DialogFooter className="gap-2 sm:gap-0">
                 <Button variant="ghost" onClick={() => setIsDetailModalOpen(false)}>Close</Button>
                 <Button 
-                  className="bg-blue-600 hover:bg-blue-700 font-bold px-8"
+                  className="bg-blue-600 hover:bg-blue-700 font-bold px-8 text-white"
                   onClick={() => {
                     setIsDetailModalOpen(false);
                     handleDonate(selectedReq);
                   }}
-                  disabled={selectedReq.collectedAmount >= selectedReq.cost}
+                  disabled={selectedReq.collectedAmount >= (selectedReq.amountRequired || selectedReq.cost)}
                 >
                   Confirm & Donate
                 </Button>

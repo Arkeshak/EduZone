@@ -1,68 +1,43 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import DashboardLayout from '@/layouts/DashboardLayout'; // Our core layout
+import { FileText, CheckCircle, Clock, XCircle } from 'lucide-react'; // Icons
+import LoadingSpinner from '@/components/LoadingSpinner'; // Loader
+import client from '@/services/apiClient'; // API tool
+import { useAuth } from '@/context/AuthContext'; // Access user info
+
 /**
  * TEACHER DASHBOARD PAGE
  * 
- * File Purpose: Main landing page for logged-in teachers
- * Used for: Quick overview of welfare requests, recent activity, quick actions
- * 
- * Features:
- * - Statistics: Total requests, pending, approved, rejected counts
- * - Recent notifications from welfare request status changes
- * - Quick links to: Submit request, Upload resource, Track requests
- * - Visual cards showing request breakdown
- * 
- * Data: Fetches from /welfare endpoint and displays teacher's own requests
- * Layout: Uses DashboardLayout wrapper for sidebar and header
- */
-
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import DashboardLayout from '@/layouts/DashboardLayout';
-import { FileText, CheckCircle, Clock, XCircle, TrendingUp } from 'lucide-react';
-import LoadingSpinner from '@/components/LoadingSpinner';
-import client from '@/services/apiClient';
-import { useAuth } from '@/context/AuthContext';
-
-/**
- * TeacherDashboard Component
- * @desc The main landing hub for authenticated Teachers.
- *       Fetches and displays high-level statistics of welfare requests submitted by the teacher.
- *       Provides quick links to core actions (Submit Request, Upload Resource).
+ * Purpose: This is the first screen a teacher sees after logging in.
+ * It shows summaries of their welfare requests and quick links to actions.
  */
 const TeacherDashboard = () => {
   const { user } = useAuth();
   
-  /**
-   * STATE MANAGEMENT
-   * Purpose: Tracks request statistics, notifications, and loading state.
-   * TotalRequests: Aggregate count of all teacher-submitted requests.
-   * Pending: Requests awaiting Principal or ZEO approval.
-   * Approved: Successfully published or approved requests.
-   * Rejected: Denied requests for various administrative reasons.
-   */
+  // STATE: Stores total, pending, approved, and rejected counts
   const [stats, setStats] = useState({
     totalRequests: 0,
     pending: 0,
     approved: 0,
     rejected: 0
   });
+  
+  // STATE: Stores a list of recent status changes to show the user
   const [recentNotifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  /**
-   * DATA FETCHING EFFECT
-   * Purpose: Retrieves welfare records to populate dashboard stats on mount.
-   * Action: Calls GET /welfare and parses response for status categorization.
-   * Validation: Normalizes response objects to ensure array format regardless of pagination.
-   */
-   useEffect(() => {
+  // FETCH DATA: Runs when the page loads
+  useEffect(() => {
     const fetchData = async () => {
       try {
+        // Get all welfare requests for this teacher
         const { data } = await client.get('/welfare');
         
-        // Handle paginated response structure
+        // Ensure data is in array format (handles different API response styles)
         const requests = data.data && Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
 
-        // Calculate Stats
+        // CALCULATE STATS: Count requests by their current status
         const total = requests.length;
         const pending = requests.filter(r => 
           r.status?.toUpperCase() === 'SUBMITTED' || 
@@ -76,7 +51,7 @@ const TeacherDashboard = () => {
 
         setStats({ totalRequests: total, pending, approved, rejected });
 
-        // Generate Notifications from recent status changes
+        // CREATE FEED: Take top 3 most recent requests to show as "updates"
         const recent = requests.slice(0, 3).map(r => ({
           id: r.id,
           text: `Request for ${r.studentName}: ${r.status}`,
@@ -89,22 +64,25 @@ const TeacherDashboard = () => {
         console.error("Failed to load dashboard data", error);
         setNotifications([]);
       } finally {
-        setLoading(false);
+        setLoading(false); // Hide the spinner
       }
     };
     fetchData();
   }, []);
 
+  // Show loading screen while data is arriving
   if (loading) return <DashboardLayout><LoadingSpinner /></DashboardLayout>;
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {/* HEADER SECTION */}
         <div>
-          <h1 className="text-2xl mb-2 font-bold">Teacher Dashboard</h1>
+          <h1 className="text-2xl mb-2 font-bold text-slate-900">Teacher Dashboard</h1>
           <p className="text-gray-600">Welcome back, {user?.fullName || user?.name}! Overview of your student welfare requests.</p>
         </div>
 
+        {/* SUMMARY CARDS: Top row statistics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={FileText} label="Total Requests" value={stats.totalRequests} color="blue" />
           <StatCard icon={Clock} label="Pending Approval" value={stats.pending} color="yellow" />
@@ -112,10 +90,12 @@ const TeacherDashboard = () => {
           <StatCard icon={XCircle} label="Rejected" value={stats.rejected} color="red" />
         </div>
 
+        {/* MAIN GRID: Actions and Updates */}
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* QUICK ACTIONS: Primary navigational links for frequent tasks */}
+          
+          {/* QUICK ACTIONS: Buttons for common tasks */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <h2 className="text-lg mb-4 font-semibold">Quick Actions</h2>
+            <h2 className="text-lg mb-4 font-semibold text-slate-900">Quick Actions</h2>
             <div className="space-y-3">
               <QuickActionLink to="/teacher/submit-request" title="Submit New Welfare Request" desc="Create a new student welfare request" />
               <QuickActionLink to="/teacher/upload-resource" title="Upload Study Resource" desc="Share educational materials" />
@@ -123,9 +103,9 @@ const TeacherDashboard = () => {
             </div>
           </div>
 
-          {/* RECENT UPDATES: Display feed of latest request status transitions */}
+          {/* RECENT UPDATES: Notification feed */}
           <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-            <h2 className="text-lg mb-4 font-semibold">Recent Status Updates</h2>
+            <h2 className="text-lg mb-4 font-semibold text-slate-900">Recent Status Updates</h2>
             <div className="space-y-3">
               {recentNotifications.length > 0 ? recentNotifications.map(notif => (
                 <div key={notif.id} className={`p-3 border rounded-md ${notif.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
@@ -143,6 +123,7 @@ const TeacherDashboard = () => {
   );
 };
 
+// COMPONENT: A simple box showing a single statistic
 const StatCard = ({ icon: Icon, label, value, color }) => {
   const colors = {
     blue: "bg-blue-100 text-blue-600",
@@ -161,6 +142,7 @@ const StatCard = ({ icon: Icon, label, value, color }) => {
   );
 };
 
+// COMPONENT: A clickable card used for navigation
 const QuickActionLink = ({ to, title, desc }) => (
   <Link to={to} className="block p-4 border border-gray-200 rounded-md hover:border-blue-500 hover:bg-blue-50 transition-colors">
     <p className="font-medium text-slate-900">{title}</p>

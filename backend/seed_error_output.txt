@@ -1,0 +1,3 @@
+TypeError: t1Profile.addTeachesSubjects is not a function
+    at seedData (C:\Users\ASUS\Desktop\Eduzone\backend\seeders\LegacySeeder.js:73:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)

@@ -1,6 +1,12 @@
-﻿const StatusBadge = ({ status }) => {
+/**
+ * STATUS BADGE COMPONENT
+ * 
+ * Purpose: A reusable label that changes color based on its "status" (e.g., Green for Funded, Red for Rejected).
+ */
+const StatusBadge = ({ status }) => {
+  // MAP: Assigning Tailwind CSS colors (background and text) to each status code
   const statusConfig = {
-    // Uppercase new schema statuses
+    // Current Status Codes
     'SUBMITTED': 'bg-blue-100 text-blue-800',
     'PRINCIPAL_APPROVED': 'bg-indigo-100 text-indigo-800',
     'ZEO_APPROVED': 'bg-green-100 text-green-800',
@@ -12,7 +18,7 @@
     'VERIFIED': 'bg-green-100 text-green-800',
     'PENDING': 'bg-yellow-100 text-yellow-800',
 
-    // Legacy mapping support
+    // Legacy support for older status naming conventions
     'Pending Principal': 'bg-yellow-100 text-yellow-800',
     'Pending ZEO': 'bg-blue-100 text-blue-800',
     'Approved': 'bg-green-100 text-green-800',
@@ -31,10 +37,12 @@
   };
 
   const displayStatus = status || 'N/A';
+  // Use gray as a fallback if the status code is unknown
   const className = statusConfig[displayStatus] || 'bg-gray-100 text-gray-800';
 
   return (
     <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${className}`}>
+      {/* Remove underscores from the text for better readability (e.g., ZEO_APPROVED -> ZEO APPROVED) */}
       {displayStatus.replace('_', ' ')}
     </span>
   );

@@ -1,28 +1,8 @@
-/**
- * APP ROUTER
- * 
- * File Purpose: Central routing configuration for entire application
- * Used for: Defining all pages and their routes, role-based access patterns
- * 
- * Structure:
- * - Public routes: Home, Login, Registration, Password reset (no auth needed)
- * - Protected routes: All dashboards, management pages (require authentication)
- * - Role-based routes: Teacher, Principal, ZEO, Donor specific pages
- * 
- * Route groups:
- * - Teachers: Dashboard, Welfare requests, Resources, Circulars
- * - Principals: Dashboard, Approve requests, Reports, Circulars, Fund tracking
- * - ZEOs: Dashboard, User management, Approvals, Donations, Analytics
- * - Donors: Dashboard, Browse requests, Make donations, Track donations
- * 
- * Security: ProtectedRoute wrapper enforces authentication and role checks
- */
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'; // Core routing library
+import { AuthProvider } from '@/context/AuthContext'; // Provider for global authentication state
+import ProtectedRoute from './ProtectedRoute'; // Guard component for role-based access
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/context/AuthContext';
-import ProtectedRoute from './ProtectedRoute';
-
-// Public pages
+// PUBLIC PAGES: Accessible without logging in
 import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import DonorRegistration from '@/pages/DonorRegistration';
@@ -33,7 +13,7 @@ import ResetPassword from '@/pages/ResetPassword';
 import PublicResources from '@/pages/PublicResources';
 import ActivateAccount from '@/pages/ActivateAccount';
 
-// Teacher pages
+// TEACHER PAGES: Dashboard and welfare request tools
 import TeacherDashboard from '@/pages/teacher/TeacherDashboard';
 import SubmitWelfareRequest from '@/pages/teacher/SubmitWelfareRequest';
 import TrackWelfareRequests from '@/pages/teacher/TrackWelfareRequests';
@@ -42,7 +22,7 @@ import ManageResources from '@/pages/teacher/ManageResources';
 import TeacherCirculars from '@/pages/teacher/TeacherCirculars';
 import TeacherProfile from '@/pages/teacher/TeacherProfile';
 
-// Principal pages
+// PRINCIPAL PAGES: Approval workflows and reports
 import PrincipalDashboard from '@/pages/principal/PrincipalDashboard';
 import ReviewRequests from '@/pages/principal/ReviewRequests';
 import SubmitReport from '@/pages/principal/SubmitReport';
@@ -50,7 +30,7 @@ import PrincipalCirculars from '@/pages/principal/PrincipalCirculars';
 import PrincipalProfile from '@/pages/principal/PrincipalProfile';
 import ReceivedFunds from '@/pages/principal/ReceivedFunds';
 
-// ZEO pages
+// ZEO PAGES: Administration and user management
 import ZEODashboard from '@/pages/zeo/ZEODashboard';
 import UserManagement from '@/pages/zeo/UserManagement';
 import WelfareApproval from '@/pages/zeo/WelfareApproval';
@@ -60,19 +40,26 @@ import ReportReview from '@/pages/zeo/ReportReview';
 import Analytics from '@/pages/zeo/Analytics';
 import ZEOProfile from '@/pages/zeo/ZEOProfile';
 
-// Donor pages
+// DONOR PAGES: Donation tracking and browsing
 import DonorDashboard from '@/pages/donor/DonorDashboard';
 import BrowseWelfareRequests from '@/pages/donor/BrowseWelfareRequests';
 import MakeDonation from '@/pages/donor/MakeDonation';
 import TrackDonations from '@/pages/donor/TrackDonations';
 import DonorProfile from '@/pages/donor/DonorProfile';
 
+/**
+ * MAIN ROUTER COMPONENT
+ * 
+ * Purpose: Defines every URL in the app and which component to show.
+ * It also wraps the entire app in AuthProvider to enable 'useAuth' everywhere.
+ */
 const AppRouter = () => {
   return (
     <BrowserRouter>
+      {/* Provides auth state (user, role, login/logout) to all children */}
       <AuthProvider>
         <Routes>
-          {/* Public routes */}
+          {/* ----- PUBLIC ROUTES ----- */}
           <Route path="/" element={<Home />} />
           <Route path="/resources" element={<PublicResources />} />
           <Route path="/login" element={<Login />} />
@@ -82,7 +69,7 @@ const AppRouter = () => {
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/activate-account/:token" element={<ActivateAccount />} />
 
-          {/* Teacher routes */}
+          {/* ----- TEACHER ROUTES (Role: teacher) ----- */}
           <Route path="/teacher/dashboard" element={
             <ProtectedRoute allowedRoles={['teacher']}>
               <TeacherDashboard />
@@ -119,7 +106,7 @@ const AppRouter = () => {
             </ProtectedRoute>
           } />
 
-          {/* Principal routes */}
+          {/* ----- PRINCIPAL ROUTES (Role: principal) ----- */}
           <Route path="/principal/dashboard" element={
             <ProtectedRoute allowedRoles={['principal']}>
               <PrincipalDashboard />
@@ -151,7 +138,7 @@ const AppRouter = () => {
             </ProtectedRoute>
           } />
 
-          {/* ZEO routes */}
+          {/* ----- ZEO ROUTES (Role: zeo) ----- */}
           <Route path="/zeo/dashboard" element={
             <ProtectedRoute allowedRoles={['zeo']}>
               <ZEODashboard />
@@ -194,7 +181,7 @@ const AppRouter = () => {
             </ProtectedRoute>
           } />
 
-          {/* Donor routes */}
+          {/* ----- DONOR ROUTES (Role: donor) ----- */}
           <Route path="/donor/dashboard" element={
             <ProtectedRoute allowedRoles={['donor']}>
               <DonorDashboard />
@@ -221,7 +208,7 @@ const AppRouter = () => {
             </ProtectedRoute>
           } />
 
-          {/* 404 */}
+          {/* FALLBACK: Show 404 page for any unknown URL */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>

@@ -32,7 +32,7 @@ const PrincipalProfile = () => {
 
   useEffect(() => {
     fetchProfileData();
-  }, []);
+  }, [user?.id]); // Re-fetch if user changed
 
   /**
    * DATA FETCHING: Dual Profile Sync
@@ -52,7 +52,7 @@ const PrincipalProfile = () => {
       const { data: schoolData } = await client.get('/schools/my-school');
 
       setFormData({
-        fullName: userData.fullName || '',
+        fullName: userData.fullName || userData.name || '',
         email: userData.email || '',
         contactNumber: userData.profile?.contactNumber || '',
         schoolName: schoolData.name || 'Unknown School',
@@ -165,7 +165,7 @@ const PrincipalProfile = () => {
                         <div className="flex items-center gap-6">
                             <div className="relative">
                                 <ProfilePictureUpload
-                                  currentPicture={profilePicture}
+                                  currentPicture={profilePicture || user?.profilePicture}
                                   onUploadSuccess={(url) => {
                                     setProfilePicture(url);
                                     refreshUser();
